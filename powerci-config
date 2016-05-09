@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# config files are ordered by priority, first found is selected
+CONFIG_PATH=$PWD/.powerci/config:$HOME/.powerci/config:/etc/powerci.conf
+
+for i in $(echo -e ${CONFIG_PATH//:/\\n}); do
+	if [ -f $i ]; then
+		echo "$i"
+		exit 0
+	fi
+done
+
+exit 1

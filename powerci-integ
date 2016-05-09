@@ -1,0 +1,325 @@
+#!/bin/bash
+
+#
+# The purpose of this script is to pull different remotes branches and
+# merge them into a single one, push the resulting merge to a remote
+# repository in order to let the kernelci to compile / boot [ /test ]
+# it. The base mechanism relies on the reuse-recorded-resolution, so
+# the very first merge will force the caller of this script to resolve
+# the conflicts manually. The resolutions will be saved in a cache and
+# reused later when the same conflicts appear to solve them
+# automatically. In case a conflict was uncorrectly solved at the
+# first place, it is up to the user to purge the rerere cache and redo
+# a clean resolution conflict.
+#
+# The merge common point is *always the latest tag*.
+#
+# 1. How to use it
+#
+#  - Create a Linux clean tree
+#
+#  - Create one 'baseline' branch
+#
+#  - Create one configuration file located at (topmost priority):
+#    - <linux>/.powerci/config
+#    - $HOME/.powerci/config
+#    - /etc/powerci.conf
+#
+#  The powerci-config script will return the first configuration file
+#  found in the list above.
+#
+#  - Call the script from the topmost directory of the source tree
+#
+# 2. CONFIG file format
+# 
+#    <user> <url> <branch>
+#
+#  - Comments are allowed
+# 
+# eg.
+#
+# ulf.hansson http://git.linaro.org/people/ulf.hansson/linux-pm.git next
+# andy.gross https://git.linaro.org/people/andy.gross/linux-pm.git for-pm-int
+# 
+# 3. Conflict resolution
+#
+# As soon as there is a conflict detected, the merge tool is invoked,
+# the default is vimdiff. *Note* that will open a xterm, so if X11
+# forwarding is not set with the ssh connection (if any) the
+# integration process will fail.
+#
+# Take care of correctly fix the conflicts, otherwise the bad
+# resolutions will be saved and reused later by the rerere mechanism,
+# thus introducing the error each time. It is safe in this case to
+# wipe out the rerere cache or, if you are used to rerere, use 'git
+# rerere forget <resolution>' to remove the bad resolution.
+#
+# 4. Behavior
+#
+# If a branch is present in the tree but no present in the CONFIG
+# file, it will be removed. So the process of removing an old topic
+# branch is automatic, the user has just to remove or comment a line
+# in the CONFIG file.
+#
+# If a branch is not present in the tree but present in the CONFIG
+# file, it will be added. So the process of adding a new topic branch
+# is automatic, the user has just to add or uncomment a line in the
+# CONFIG file.
+#
+# If no branches have been updated since the last merge, the script
+# will suggest to abort integration process [default=y].
+#
+# When the merge is done, the script propose to push the branch to the
+# remote repository [default=y]. *Note* this operation will overwrite
+# the previous branch in the remote repository.
+#
+# In order to prevent polluting the remote repository, only one branch
+# 'integ' is pushed, copies of all the previous merges are stored in
+# the local repo with the name 'integ-<commit-id>
+#
+
+# The configuration file containing the name + url + branch
+CONFIG=$(powerci-config)
+
+if [ "$CONFIG" == "" ]; then
+    echo "No configuration file found, aborting."
+    exit 1
+fi
+
+# The integration branch
+INTEG_BRANCH="integ"
+
+# The remote git repo
+REMOTE_INTEG_BRANCH="ssh://git@git.linaro.org/power/linux.git integ"
+
+# The baseline branch
+BASELINE_BRANCH="baseline"
+
+# Global variable to test if a change occured during the last merge
+# or not. If one branch is added, deleted or updated, this variable
+# will be different from zero and will lead to the merge operation
+# followed by an update of the tree.
+CHANGED=0
+
+######################################################################
+do_git_rerere_enable() {
+
+    RES=$(git config --local --bool --get rerere.enabled)
+
+    if [ $? -eq 0 -a "${RES,,}" == "true" ]; then
+	return 0
+    fi
+
+    # At this point, git config returned an error which means the
+    # option is not set in the config file or the option is not set to
+    # "true". In both cases we enable the option
+    echo "Enable Reuse-Recorded-Resolution."
+    git config --local --bool rerere.enabled true
+}
+
+######################################################################
+do_remove_old() {
+
+    echo "Removing old remotes ..."
+
+    # 
+    # Retrieve all remotes except baseline. The mechanism relies on a
+    # clean tree without extra branches other than $BASELINE_BRANCH
+    # and $INTEG*.OB
+    #
+    # All others branches will be asked for ***deletion***.
+    #
+    REMOVED=0
+
+    for REMOTE_NAME in $(git remote | grep -v $BASELINE_BRANCH); do
+
+	REMOTE_BRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
+	REMOTE_URL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
+	FOUND=0
+	
+	while read LINE; do
+	    
+	    # ignore commented lines
+	    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+	    
+	    echo $LINE | grep "^$REMOTE_NAME\b" | grep $REMOTE_URL | grep -q $REMOTE_BRANCH
+	    if [ $? -eq 0 ]; then
+		FOUND=1
+	    fi
+	done < $CONFIG
+	
+	if [ $FOUND -eq 1 ]; then
+	    continue
+	fi
+	
+	echo "The remote $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH is no longer tracked."
+	echo -n "Delete it [Y/n]? "
+	read RES
+	if [ "$RES" == "Y" -o "$RES" == "y" -o "$RES" == "" ]; then
+	    git remote remove $REMOTE_NAME
+	    REMOVED=$((REMOVED+1))
+	fi
+	
+    done
+
+    echo "Done, removed $REMOVED old remote(s)."
+
+    CHANGED=$((REMOVED + CHANGED))
+}
+
+######################################################################
+
+do_add_new() {
+
+    echo "Adding all remotes new ..."
+
+    ADDED=0
+    
+    while read LINE; do
+	
+	# Ignore commented line
+	echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+	
+	REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+	REMOTE_URL=$(echo $LINE | awk '{print $2}')
+	REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+	
+	git remote | grep -q "$REMOTE_NAME"
+	if [ $? -ne 0 ]; then
+	    echo "Adding remote $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
+	    git remote add -f -t $REMOTE_BRANCH $REMOTE_NAME $REMOTE_URL
+	    ADDED=$((ADDED + 1))
+	fi
+    done < $CONFIG
+    
+    echo "Done, added $ADDED new remote(s)."
+
+    CHANGED=$((ADDED + CHANGED))
+}
+
+######################################################################
+
+do_update_baseline() {
+    echo "Updating $BASELINE_BRANCH ..."
+
+    RES=$(git remote update $BASELINE_BRANCH 2>&1 | wc -l)
+    if [ $RES -gt 1 ]; then
+	echo "$BASELINE_BRANCH has changed."
+	CHANGED=$((CHANGED + 1))
+    fi
+
+    echo "Done, updated baseline."
+}
+
+######################################################################
+
+do_update_remote() {
+
+    echo "Updating the remotes ..."
+    
+    UPDATED=0
+
+    while read LINE; do
+	
+	echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+	
+	REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+	
+	RES=$(git remote update $REMOTE_NAME 2>&1 | wc -l)
+	if [ $RES -gt 1 ]; then
+	    echo "$REMOTE_NAME has changed."
+	    UPDATED=$((UPDATED + 1))
+	fi
+
+    done < $CONFIG
+
+    echo "Done, updated $UPDATED remote(s)."
+
+    CHANGED=$((UPDATED + CHANGED))
+}
+
+######################################################################
+
+# The merge process can be greatly simplified by using the
+# reuse-recorded-resolution (rerere), but this one must be enabled
+do_git_rerere_enable
+
+# Remove all branches present in the git tree but no longer tracked in
+# the CONFIG file
+do_remove_old
+
+# Add all branches present in the CONFIG file but not present in the
+# git tree
+do_add_new
+
+# Update all the remote branches
+do_update_remote
+
+# Update the baseline
+do_update_baseline
+
+# If anything changed in the process (removal, addition, update) then
+# it makes sense to create a new integ branch, otherwise let the user
+# to choose to continue or abort the process
+if [ $CHANGED -eq 0 ]; then
+    echo "No branches have changed since last time."
+    echo -n "Abort building the integ branch? [Y/n]"
+    read RES
+    if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
+	echo "Integration branch building aborted."
+	exit 0
+    fi
+fi
+
+########################################################
+
+TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+echo "Latest tag is $TAG"
+
+echo "Check the 'integration' branch exists"
+git branch | grep -q "$INTEG_BRANCH$"
+
+if [ $? -eq 0 ]; then
+	echo "The integration branch already exists."
+
+	INTEG_BRANCH_NEW_NAME=$INTEG_BRANCH-$(git log --format="%H" -n 1)
+
+	echo "Rename it to $INTEG_BRANCH_NEW_NAME"
+	git branch -M $INTEG_BRANCH $INTEG_BRANCH_NEW_NAME
+fi
+
+echo "Create a new integration branch"
+git checkout -b $INTEG_BRANCH $TAG
+
+echo "Merging topic branches..."
+
+MERGED=0
+
+while read LINE; do
+
+    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+
+    REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+    REMOTE_URL=$(echo $LINE | awk '{print $2}')
+    REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+
+    echo "Merging $REMOTE_NAME/$REMOTE_BRANCH"
+
+    git merge --no-edit $REMOTE_NAME/$REMOTE_BRANCH
+    if [ $? -ne 0 ]; then
+	echo "Merge failed, manual merge"
+	xterm -e "git mergetool -y"
+	git commit -a --no-edit
+    fi
+
+    MERGED=$((MERGED+1))
+
+done < $CONFIG
+
+echo "Done, merged $MERGED topic(s)."
+
+echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
+read RES
+if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
+	git push -f $REMOTE_INTEG_BRANCH
+fi

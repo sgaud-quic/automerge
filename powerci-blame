@@ -1,0 +1,51 @@
+#!/bin/bash
+BASELINE_BRANCH="baseline"
+POWERCI_CONFIG=$(powerci-config)
+FILE=$1
+LINE=$2
+ERROR=$3
+
+COMMIT_ID=$(git blame -L$LINE,$LINE $FILE | awk '{ print $1 }')
+if [ "$COMMIT_ID" == "" ]; then
+	exit 1
+fi
+
+BRANCH=$(git branch -r --contains $COMMIT_ID)
+FOUND=0
+
+#
+# If the commit id belongs to the baseline branch, then it is common
+# to all branches and we can just ignore this commit
+#
+echo $BRANCH | grep -q $BASELINE_BRANCH 
+if [ $? -eq 0 ]; then
+	exit 0
+fi
+
+echo $POWERCI_CONFIG
+
+
+while read LINE; do
+
+    # ignore commented lines
+    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+
+    REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+    REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+
+    if [ "$REMOTE_NAME/$REMOTE_BRANCH" == $BRANCH ]; then
+	FOUND=1
+	break
+    fi
+
+done < $POWERCI_CONFIG
+
+if [ $FOUND -eq 1 ]; then
+
+    echo
+    echo "The error/warning: $ERROR"
+    echo "... was introduced by commit:"
+    echo
+
+    git log -1 --pretty=medium $COMMIT_ID
+fi
