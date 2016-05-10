@@ -1,21 +1,28 @@
 #!/bin/bash
 
 GIT_DESCR=$(git describe)
-#KERNELCI_URL=https://kernelci.org/build/pwmg/kernel/$GIT_DESCR
-KERNELCI_URL=http://192.168.1.150/build/pmwg/kernel/$GIT_DESCR
+KERNELCI_URL=https://kernelci.org/build/pwmg/kernel/$GIT_DESCR
 BLAME_SCRIPT=powerci-blame
 
-echo "Downloading $KERNELCI_URL/errors.txt ..."
+powerci_report() {
 
-curl -f $KERNELCI_URL/errors.txt -o - | while read -r ERROR; do
+    URL=$KERNELCI_URL/$1
 
-    # ignore commented lines
-    echo $ERROR | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+    echo "Downloading $URL ..."
 
-    FILE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $1}')
-    LINE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $2}')
+    curl -f $URL -o - | while read -r ERROR; do
 
-    echo "Investigating \"$ERROR\" ..."
-    $BLAME_SCRIPT $FILE $LINE "$ERROR"
+	# ignore commented lines
+	echo $ERROR | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
 
-done
+	FILE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $1}')
+	LINE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $2}')
+
+	echo "Investigating \"$ERROR\" ..."
+	$BLAME_SCRIPT $FILE $LINE "$ERROR"
+
+    done
+}
+
+powerci_report errors.txt
+powerci_report warnings.txt
