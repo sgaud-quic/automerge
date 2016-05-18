@@ -1,6 +1,6 @@
 #!/bin/bash
 BASELINE_BRANCH="baseline"
-POWERCI_CONFIG=$(powerci-config)
+POWERCI_CONFIG=$(pmwg-ci-config)
 FILE=$1
 LINE=$2
 ERROR=$3

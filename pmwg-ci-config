@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # config files are ordered by priority, first found is selected
-CONFIG_PATH=$PWD/.powerci/config:$HOME/.powerci/config:/etc/powerci.conf
+CONFIG_PATH=$PWD/.pmwg-ci/config:$HOME/.pmwg-ci/config:/etc/pmwg-ci.conf
 
 for i in $(echo -e ${CONFIG_PATH//:/\\n}); do
 	if [ -f $i ]; then

@@ -21,11 +21,11 @@
 #  - Create one 'baseline' branch
 #
 #  - Create one configuration file located at (topmost priority):
-#    - <linux>/.powerci/config
-#    - $HOME/.powerci/config
-#    - /etc/powerci.conf
+#    - <linux>/.pmwg-ci/config
+#    - $HOME/.pmwg-ci/config
+#    - /etc/pmwg-ci.conf
 #
-#  The powerci-config script will return the first configuration file
+#  The pmwg-ci-config script will return the first configuration file
 #  found in the list above.
 #
 #  - Call the script from the topmost directory of the source tree
@@ -79,7 +79,7 @@
 #
 
 # The configuration file containing the name + url + branch
-CONFIG=$(powerci-config)
+CONFIG=$(pmwg-ci-config)
 
 if [ "$CONFIG" == "" ]; then
     echo "No configuration file found, aborting."
