@@ -1,12 +1,14 @@
 #!/bin/bash
 
-GIT_DESCR=$(git describe)
-KERNELCI_URL=https://kernelci.org/build/pwmg/kernel/$GIT_DESCR
+# kernelci is using abbrev=12 inherited from Jenkins
+ABBREV=12
+GIT_DESCR=$(git describe --abbrev=$ABBREV)
+KERNELCI_URL=https://storage.kernelci.org/pmwg/$GIT_DESCR/build-logs-summary.txt
 BLAME_SCRIPT=pmwg-ci-blame
 
 pmwg-ci_report() {
 
-    URL=$KERNELCI_URL/$1
+    URL=$KERNELCI_URL
 
     echo "Downloading $URL ..."
 
@@ -24,5 +26,4 @@ pmwg-ci_report() {
     done
 }
 
-pmwg-ci_report errors.txt
-pmwg-ci_report warnings.txt
+pmwg-ci_report
