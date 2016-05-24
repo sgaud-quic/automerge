@@ -43,7 +43,6 @@ pmwg-ci_report() {
 	# to one of *our* branch, then we end up with nothing on the input, so
 	# nothing on the email report => everything ok.
 	$BLAME_SCRIPT $FILE $LINE "$ERROR"
-
     done
 
     # Add a tag to the tree, so we now the report was already done.
