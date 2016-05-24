@@ -39,7 +39,9 @@ pmwg-ci_report() {
 	FILE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $1}')
 	LINE=$(echo $ERROR | awk '{ print $2 }' | awk -F ':' '{print $2}')
 
-	echo "Investigating \"$ERROR\" ..."
+	# Do not display anything, so if there is no warning/error belonging
+	# to one of *our* branch, then we end up with nothing on the input, so
+	# nothing on the email report => everything ok.
 	$BLAME_SCRIPT $FILE $LINE "$ERROR"
 
     done
