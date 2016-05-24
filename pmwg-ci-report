@@ -7,7 +7,7 @@ REPOPATH=${1:-$PWD}
 
 # Use pushd here so when the script exits, the CWD will automatically
 # be the initial one before calling this script.
-pushd $REPOPATH
+pushd $REPOPATH > /dev/null
 
 # kernelci is using abbrev=12 inherited from Jenkins
 ABBREV=12
@@ -24,7 +24,14 @@ pmwg-ci_report() {
 
     URL=$KERNELCI_URL
 
-    curl -s -f $URL -o - | while read -r ERROR; do
+    git tag | grep -q report-$GIT_DESCR && return 0
+
+    ERRORS="$(curl -s -f $URL)"
+    if [ $? -ne 0 ]; then
+	return 1
+    fi
+
+    echo "$ERRORS" | while read -r ERROR; do
 
 	# ignore commented lines
 	echo $ERROR | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
@@ -36,6 +43,9 @@ pmwg-ci_report() {
 	$BLAME_SCRIPT $FILE $LINE "$ERROR"
 
     done
+
+    # Add a tag to the tree, so we now the report was already done.
+    git tag report-$GIT_DESCR
 }
 
 pmwg-ci_report
