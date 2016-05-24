@@ -209,11 +209,14 @@ do_add_new() {
 ######################################################################
 
 do_update_baseline() {
-    echo "Updating $BASELINE_BRANCH ..."
 
-    RES=$(git remote update $BASELINE_BRANCH 2>&1 | wc -l)
-    if [ $RES -gt 1 ]; then
-	echo "$BASELINE_BRANCH has changed."
+    TAG1=$(git describe --tags $(git rev-list --tags --max-count=1))
+    echo "Updating $BASELINE_BRANCH ..."
+    git remote update $BASELINE_BRANCH 2>&1
+    TAG2=$(git describe --tags $(git rev-list --tags --max-count=1))
+
+    if [ "$TAG1" != "$TAG2" ]; then
+	echo "$BASELINE_BRANCH has new tag $TAG2."
 	CHANGED=$((CHANGED + 1))
     fi
 
