@@ -5,6 +5,14 @@ ABBREV=12
 GIT_DESCR=$(git describe --abbrev=$ABBREV)
 KERNELCI_URL=https://storage.kernelci.org/pmwg/$GIT_DESCR/build-logs-summary.txt
 BLAME_SCRIPT=pmwg-ci-blame
+# Give the opportunity the caller of the script to specify the directory
+# where the repository is located, otherwise default to the current
+# directory
+REPOPATH=${1:-$PWD}
+
+# Use pushd here so when the script exits, the CWD will automatically
+# be the initial one before calling this script.
+pushd $REPOPATH
 
 pmwg-ci_report() {
 
