@@ -5,7 +5,14 @@ FILE=$1
 LINE=$2
 ERROR=$3
 
-COMMIT_ID=$(git blame -L$LINE,$LINE $FILE | awk '{ print $1 }')
+# Generated files in the compilation directory won't be found
+# in the source tree, so instead of spitting an error, just ignore
+# the error/warning when the file is not found.
+if [ ! -f $FILE ]; then
+	exit 0
+fi
+
+COMMIT_ID=$(git annotate -L$LINE,$LINE $FILE | awk '{ print $1 }')
 if [ "$COMMIT_ID" == "" ]; then
 	exit 1
 fi
@@ -48,4 +55,6 @@ if [ $FOUND -eq 1 ]; then
     echo
 
     git log -1 --pretty=medium $COMMIT_ID
+
+    echo
 fi
