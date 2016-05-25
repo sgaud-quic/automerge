@@ -210,10 +210,12 @@ do_add_new() {
 
 do_update_baseline() {
 
-    TAG1=$(git describe --tags $(git rev-list --tags --max-count=1))
+    TAG1=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
     echo "Updating $BASELINE_BRANCH ..."
     git remote update $BASELINE_BRANCH 2>&1
-    TAG2=$(git describe --tags $(git rev-list --tags --max-count=1))
+    TAG2=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
+
+    echo latest tag is $TAG2
 
     if [ "$TAG1" != "$TAG2" ]; then
 	echo "$BASELINE_BRANCH has new tag $TAG2."
@@ -285,7 +287,7 @@ fi
 
 ########################################################
 
-TAG=$(git describe --tags $(git rev-list --tags --max-count=1))
+TAG=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
 echo "Latest tag is $TAG"
 
 echo "Check the 'integration' branch exists"
@@ -300,7 +302,7 @@ if [ $? -eq 0 ]; then
 	git branch -M $INTEG_BRANCH $INTEG_BRANCH_NEW_NAME
 fi
 
-echo "Create a new integration branch"
+echo "Create a new integration branch based on $TAG"
 git checkout -b $INTEG_BRANCH $TAG
 
 echo "Merging topic branches..."
