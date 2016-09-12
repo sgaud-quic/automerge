@@ -319,7 +319,7 @@ while read LINE; do
 
     echo "Merging $REMOTE_NAME/$REMOTE_BRANCH"
 
-    git merge --no-edit $REMOTE_NAME/$REMOTE_BRANCH
+    git merge --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
     if [ $? -ne 0 ]; then
 	echo "Merge failed, manual merge"
 	xterm -e "git mergetool -y"
