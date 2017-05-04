@@ -16,7 +16,7 @@ ABBREV=12
 GIT_DESCR=$(git describe --abbrev=$ABBREV)
 
 # Build the url
-KERNELCI_URL=https://storage.kernelci.org/pmwg/$GIT_DESCR/build-logs-summary.txt
+KERNELCI_URL=https://storage.kernelci.org/pmwg/integ/$GIT_DESCR/build-logs-summary.txt
 
 BLAME_SCRIPT=pmwg-ci-blame
 
