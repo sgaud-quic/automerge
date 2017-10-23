@@ -52,4 +52,7 @@ if [ $FOUND -eq 1 ]; then
     echo
     git log -1 --pretty=medium $COMMIT_ID
     echo
+
+    exit 1
+
 fi

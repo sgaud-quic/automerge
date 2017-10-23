@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Give the opportunity the caller of the script to specify the directory
+# where the repository is located, otherwise default to the current
+# directory
+REPOPATH=${1:-$PWD}
+TESTPATH=/home/pmwg.ci/Tools/ktest_config/
+
+
+# Move into the test directory of the repo
+cd $REPOPATH/tools/testing/ktest
+
+# kernelci is using abbrev=12 inherited from Jenkins
+ABBREV=12
+
+# Get the git description conforming to kernelci
+GIT_DESCR=$(git describe --abbrev=$ABBREV)
+
+pmwg-ci_test() {
+	# Test already done
+	git tag | grep -q test-$GIT_DESCR && return 1
+
+	# Error found in our dev branches
+	git tag | grep -q blame-$GIT_DESCR && return 1
+
+	# report not available
+	git tag | grep -q report-$GIT_DESCR || return 1
+
+	# Add a tag to the tree, so we know that the branch has been tested
+	git tag test-$GIT_DESCR
+
+	# Call tests framework
+	./ktest.pl $TESTPATH/pmwg-lab.conf > /dev/null
+
+	echo "Tests done"
+	echo "Log and Results are available in the test directory"
+
+}
+
+pmwg-ci_test

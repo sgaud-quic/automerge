@@ -5,16 +5,14 @@
 # directory
 REPOPATH=${1:-$PWD}
 
-# Use pushd here so when the script exits, the CWD will automatically
-# be the initial one before calling this script.
-pushd $REPOPATH > /dev/null
+# Move into the repo
+cd $REPOPATH
 
 # kernelci is using abbrev=12 inherited from Jenkins
 ABBREV=12
 
 # Get the git description conforming to kernelci
 GIT_DESCR=$(git describe --abbrev=$ABBREV)
-
 # Build the url
 KERNELCI_URL=https://storage.kernelci.org/pmwg/integ/$GIT_DESCR/build-logs-summary.txt
 
@@ -24,13 +22,14 @@ pmwg-ci_report() {
 
     URL=$KERNELCI_URL
 
-    git tag | grep -q report-$GIT_DESCR && return 0
+    git tag | grep -q report-$GIT_DESCR && return 1
 
     ERRORS="$(curl -s -f $URL)"
     if [ $? -ne 0 ]; then
 	return 1
     fi
 
+    RET=0
     echo "$ERRORS" | while read -r ERROR; do
 
 	# ignore commented lines
@@ -43,10 +42,18 @@ pmwg-ci_report() {
 	# to one of *our* branch, then we end up with nothing on the input, so
 	# nothing on the email report => everything ok.
 	$BLAME_SCRIPT $FILE $LINE "$ERROR"
+	RET=$(( RET + $? ))
     done
 
-    # Add a tag to the tree, so we now the report was already done.
+    # Add a tag to the tree, so we know that the branch can't be tested
+    if [ $RET -ne 0]; then
+        git tag blame-$GIT_DESCR
+    fi
+
+    # Add a tag to the tree, so we know the report was already done.
     git tag report-$GIT_DESCR
+
+    return $RET
 }
 
 pmwg-ci_report
