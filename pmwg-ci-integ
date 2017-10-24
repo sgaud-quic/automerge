@@ -169,6 +169,17 @@ fi
 CHANGED=0
 
 ######################################################################
+
+#
+# When running on a Linux tree, we want to pick the latest tag of the
+# Vanilla kernel, not the intermediate state of the Linux tree but a
+# relatively stable version.
+#
+get_lastest_commit_id() {
+    git describe --abbrev=0
+}
+
+######################################################################
 do_git_rerere_enable() {
 
     RES=$(git config --local --bool --get rerere.enabled)
@@ -268,10 +279,12 @@ do_add_new() {
 
 do_update_baseline() {
 
-    TAG1=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
+    TAG1=$(get_lastest_commit_id)
+
     echo "Updating $BASELINE_BRANCH ..."
     git remote update $BASELINE_BRANCH 2>&1
-    TAG2=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
+
+    TAG2=$(get_lastest_commit_id)
 
     echo latest tag is $TAG2
 
@@ -345,7 +358,7 @@ fi
 
 ########################################################
 
-TAG=$(git describe --tags $(git rev-list --tags=v* --max-count=1))
+TAG=$(get_lastest_commit_id)
 echo "Latest tag is $TAG"
 
 echo "Check the 'integration' branch exists"
