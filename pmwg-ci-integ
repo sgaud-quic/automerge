@@ -78,14 +78,81 @@
 # the local repo with the name 'integ-<commit-id>
 #
 
-# Give the opportunity the caller of the script to specify the directory
-# where the repository is located, otherwise default to the current
-# directory
-REPOPATH=${1:-$PWD}
+Help() {
+    echo "-h|--help	: Display this help"
+    echo "-l|--local	: Path to the local repository"
+    echo "-r|--remote	: Path to the remote repository"
+    echo "-b|--baseline	: Baseline branch name"
+    echo "-i|--integ	: Integration branch name"
+}
+
+SHORTOPT="hl:r:b:i:"
+LONGOPT="help,local:,remote:,baseline:,integ:"
+
+OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
+
+if [ $? != 0 ]; then
+    echo "Failed to get options"
+    exit 1
+fi
+
+eval set -- "$OPTS"
+
+# The default repository directory is the current one
+LOCAL_REPO=$PWD
+
+# The default remote repository
+REMOTE_REPO="ssh://git@git.linaro.org/power/linux.git"
+
+# The integration branch
+INTEG_BRANCH="integ"
+
+# The baseline branch
+BASELINE_BRANCH="baseline"
+
+while true; do
+
+    OPT=$1
+    shift
+
+    if [ "$OPT" = "" ]; then
+	break
+    fi
+
+    case "$OPT" in
+	--help|-h)
+	    Help
+	    break # We just display the help and exit
+	    ;;
+
+	--local|-l)
+	    LOCAL_REPO=$1
+	    ;;
+
+	--remote|-r)
+	    REMOTE_REPO=$1
+	    ;;
+
+	--baseline|-b)
+	    BASELINE_BRANCH=$1
+	    ;;
+
+	--integ:-i)
+	    INTEG_BRANCH=$1
+	    ;;
+
+	--)
+	    break
+	    ;;
+    esac
+done
+
+# The remote branch in git repository
+REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
 
 # Use pushd here so when the script exits, the CWD will automatically
 # be the initial one before calling this script.
-pushd $REPOPATH
+pushd $LOCAL_REPO
 
 # The configuration file containing the name + url + branch
 CONFIG=$(pmwg-ci-config)
@@ -94,15 +161,6 @@ if [ "$CONFIG" == "" ]; then
     echo "No configuration file found, aborting."
     exit 1
 fi
-
-# The integration branch
-INTEG_BRANCH="integ"
-
-# The remote git repo
-REMOTE_INTEG_BRANCH="ssh://git@git.linaro.org/power/linux.git integ"
-
-# The baseline branch
-BASELINE_BRANCH="baseline"
 
 # Global variable to test if a change occured during the last merge
 # or not. If one branch is added, deleted or updated, this variable
