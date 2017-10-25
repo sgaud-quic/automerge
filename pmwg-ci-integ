@@ -107,8 +107,8 @@ REMOTE_REPO="ssh://git@git.linaro.org/power/linux.git"
 # The integration branch
 INTEG_BRANCH="integ"
 
-# The baseline branch
-BASELINE_BRANCH="baseline"
+# The baseline remote repo
+BASELINE="baseline"
 
 while true; do
 
@@ -134,7 +134,7 @@ while true; do
 	    ;;
 
 	--baseline|-b)
-	    BASELINE_BRANCH=$1
+	    BASELINE=$1
 	    ;;
 
 	--integ:-i)
@@ -202,14 +202,14 @@ do_remove_old() {
 
     # 
     # Retrieve all remotes except baseline. The mechanism relies on a
-    # clean tree without extra branches other than $BASELINE_BRANCH
+    # clean tree without extra branches other than $BASELINE
     # and $INTEG*.OB
     #
     # All others branches will be asked for ***deletion***.
     #
     REMOVED=0
 
-    for REMOTE_NAME in $(git remote | grep -v $BASELINE_BRANCH); do
+    for REMOTE_NAME in $(git remote | grep -v $BASELINE); do
 
 	REMOTE_BRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
 	REMOTE_URL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
@@ -281,15 +281,15 @@ do_update_baseline() {
 
     TAG1=$(get_lastest_commit_id)
 
-    echo "Updating $BASELINE_BRANCH ..."
-    git remote update $BASELINE_BRANCH 2>&1
+    echo "Updating $BASELINE ..."
+    git remote update $BASELINE 2>&1
 
     TAG2=$(get_lastest_commit_id)
 
     echo latest tag is $TAG2
 
     if [ "$TAG1" != "$TAG2" ]; then
-	echo "$BASELINE_BRANCH has new tag $TAG2."
+	echo "$BASELINE has new tag $TAG2."
 	CHANGED=$((CHANGED + 1))
     fi
 
