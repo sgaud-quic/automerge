@@ -78,14 +78,6 @@
 # the local repo with the name 'integ-<commit-id>
 #
 
-Help() {
-    echo "-h|--help	: Display this help"
-    echo "-l|--local	: Path to the local repository"
-    echo "-r|--remote	: Path to the remote repository"
-    echo "-b|--baseline	: Baseline branch name"
-    echo "-i|--integ	: Integration branch name"
-}
-
 SHORTOPT="hl:r:b:i:"
 LONGOPT="help,local:,remote:,baseline:,integ:"
 
@@ -110,6 +102,26 @@ INTEG_BRANCH="integ"
 # The baseline remote repo
 BASELINE="baseline"
 
+Help() {
+    echo
+
+    echo " The Power Management Continuous Integration script takes all
+ remote repositories, merge the <baseline> <branch> into the <integ>
+ branch in the <local> working repository as well as the topics
+ branches defined in the configuration file and upload the merge result
+ to <remote>"
+
+    echo
+
+    echo "	 -h|--help		: Display this help"
+    echo "	 -l|--local <path>	: Path to the local repository [$LOCAL_REPO]"
+    echo "	 -r|--remote <url>	: URL to the remote repository [$REMOTE_REPO]"
+    echo "	 -b|--baseline <name>	: Baseline name [$BASELINE]"
+    echo "	 -i|--integ <name>	: Integration branch name [$INTEG_BRANCH]"
+
+    echo
+}
+
 while true; do
 
     OPT=$1
@@ -122,7 +134,7 @@ while true; do
     case "$OPT" in
 	--help|-h)
 	    Help
-	    break # We just display the help and exit
+	    exit 0 # We just display the help and exit
 	    ;;
 
 	--local|-l)
