@@ -221,7 +221,7 @@ do_remove_old() {
     #
     REMOVED=0
 
-    for REMOTE_NAME in $(git remote | grep -v $BASELINE); do
+    for REMOTE_NAME in $(git remote); do
 
 	REMOTE_BRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
 	REMOTE_URL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
@@ -240,6 +240,11 @@ do_remove_old() {
 	
 	if [ $FOUND -eq 1 ]; then
 	    continue
+	fi
+
+	if [ "$REMOTE_NAME" = "$BASELINE" ]; then
+	    echo "The baseline $BASELINE is removed from the config file, fix this! (abort)"
+	    exit 1
 	fi
 	
 	echo "The remote $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH is no longer tracked."
