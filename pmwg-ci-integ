@@ -93,6 +93,9 @@ BASELINE="baseline"
 # The baseline branch defaulting to 'master'
 BASELINE_BRANCH=master
 
+# Track the tag or HEAD changes
+TRACK=tag
+
 # Use pushd here so when the script exits, the CWD will automatically
 # be the initial one before calling this script.
 pushd $LOCAL_REPO
@@ -123,6 +126,7 @@ Help() {
     echo "	 -r|--remote <url>	: URL to the remote repository [$REMOTE_REPO]"
     echo "	 -b|--baseline <name>	: Baseline name [$BASELINE]"
     echo "	 -i|--integ <name>	: Integration branch name [$INTEG_BRANCH]"
+    echo "	 -t|--track tag|head	 changes on the latest tag or HED on branc [$TRACK]"
 
     echo
 }
@@ -170,6 +174,14 @@ options_setup() {
 
 	    --baseline|-b)
 		BASELINE=$1
+		;;
+
+	    --track|-t)
+		if [ "$1" = "tag" -o "$1" = "head" ]; then
+		    TRACK=$1
+		else
+		    echo "Bad tracking keyword"
+		fi
 		;;
 
 	    --integ|-i)
