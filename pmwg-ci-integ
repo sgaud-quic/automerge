@@ -102,6 +102,9 @@ INTEG_BRANCH="integ"
 # The baseline remote repo
 BASELINE="baseline"
 
+# The baseline branch defaulting to 'master'
+BASELINE_BRANCH=master
+
 Help() {
     echo
 
@@ -169,11 +172,6 @@ pushd $LOCAL_REPO
 # The configuration file containing the name + url + branch
 CONFIG=$(pmwg-ci-config)
 
-if [ "$CONFIG" == "" ]; then
-    echo "No configuration file found, aborting."
-    exit 1
-fi
-
 # Global variable to test if a change occured during the last merge
 # or not. If one branch is added, deleted or updated, this variable
 # will be different from zero and will lead to the merge operation
@@ -181,18 +179,11 @@ fi
 CHANGED=0
 
 ######################################################################
-
 #
-# When running on a Linux tree, we want to pick the latest tag of the
-# Vanilla kernel, not the intermediate state of the Linux tree but a
-# relatively stable version.
+# The merge process can be greatly simplified by using the
+# reuse-recorded-resolution (rerere), but this one must be enabled
 #
-get_lastest_commit_id() {
-    git describe --abbrev=0
-}
-
-######################################################################
-do_git_rerere_enable() {
+git_rerere_setup() {
 
     RES=$(git config --local --bool --get rerere.enabled)
 
@@ -205,6 +196,70 @@ do_git_rerere_enable() {
     # "true". In both cases we enable the option
     echo "Enable Reuse-Recorded-Resolution."
     git config --local --bool rerere.enabled true
+}
+
+######################################################################
+#
+# Check we have a configuration file before continuing
+#
+config_setup() {
+    if [ "$CONFIG" == "" ]; then
+	echo "No configuration file found, aborting."
+	exit 1
+    fi
+}
+
+######################################################################
+#
+# Compute the remote branch name from the information we have from the
+# config file and the BASELINE name
+#
+baseline_branch_setup() {
+
+    while read LINE; do
+
+	# Ignore commented line
+	echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+
+	REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+	if [ "$REMOTE_NAME" = "$BASELINE" ]; then
+
+	    REMOTE_URL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
+	    REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+	    if [ "$REMOTE_BRANCH" != "" ]; then
+		BASELINE_BRANCH=remotes/$REMOTE_NAME/$REMOTE_BRANCH
+		break
+	    fi
+
+	fi
+
+    done < $CONFIG
+}
+
+######################################################################
+#
+# This is the global setup entry calling the different setup functions.
+# It ensures they are called in the right order.
+# !! Make sure to not change the order without double checking the !!
+# !! initialized variables dependencies                            !!
+#
+do_setup() {
+
+    git_rerere_setup
+
+    config_setup
+
+    baseline_branch_setup
+}
+
+######################################################################
+#
+# When running on a Linux tree, we want to pick the latest tag of the
+# Vanilla kernel, not the intermediate state of the Linux tree but a
+# relatively stable version.
+#
+get_lastest_commit_id() {
+    git describe --abbrev=0 $BASELINE_BRANCH
 }
 
 ######################################################################
@@ -342,9 +397,9 @@ do_update_remote() {
 
 ######################################################################
 
-# The merge process can be greatly simplified by using the
-# reuse-recorded-resolution (rerere), but this one must be enabled
-do_git_rerere_enable
+# Do the entire setup, the function makes sure the setup functions are
+# called in the right order for variable dependencies
+do_setup
 
 # Remove all branches present in the git tree but no longer tracked in
 # the CONFIG file
