@@ -281,8 +281,13 @@ do_setup() {
 # Vanilla kernel, not the intermediate state of the Linux tree but a
 # relatively stable version.
 #
-get_lastest_commit_id() {
-    git describe --abbrev=0 $BASELINE_BRANCH
+get_last_change_id() {
+
+    if [ "$TRACK" = "tag" ]; then
+	git describe --abbrev=0 $BASELINE_BRANCH
+    else
+	git log -n 1 --pretty=oneline $BASELINE_BRANCH | awk '{ print $1 }'
+    fi
 }
 
 ######################################################################
@@ -301,16 +306,17 @@ do_remove_old() {
 
     for REMOTE_NAME in $(git remote); do
 
-	REMOTE_BRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
-	REMOTE_URL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
+
+	RBRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
+	RURL=$(git remote -v | grep "^$REMOTE_NAME\b" | grep fetch | awk '{ print $2 }')
 	FOUND=0
-	
+
 	while read LINE; do
 	    
 	    # ignore commented lines
 	    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
 	    
-	    echo $LINE | grep "^$REMOTE_NAME\b" | grep $REMOTE_URL | grep -q $REMOTE_BRANCH
+	    echo $LINE | grep "^$REMOTE_NAME\b" | grep $RURL | grep -q $RBRANCH
 	    if [ $? -eq 0 ]; then
 		FOUND=1
 	    fi
@@ -374,12 +380,12 @@ do_add_new() {
 
 do_update_baseline() {
 
-    TAG1=$(get_lastest_commit_id)
+    TAG1=$(get_last_change_id)
 
     echo "Updating $BASELINE ..."
     git remote update $BASELINE 2>&1
 
-    TAG2=$(get_lastest_commit_id)
+    TAG2=$(get_last_change_id)
 
     echo latest tag is $TAG2
 
@@ -453,7 +459,7 @@ fi
 
 ########################################################
 
-TAG=$(get_lastest_commit_id)
+TAG=$(get_last_change_id)
 echo "Latest tag is $TAG"
 
 echo "Check the 'integration' branch exists"
