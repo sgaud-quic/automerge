@@ -78,18 +78,6 @@
 # the local repo with the name 'integ-<commit-id>
 #
 
-SHORTOPT="hl:r:b:i:"
-LONGOPT="help,local:,remote:,baseline:,integ:"
-
-OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
-
-if [ $? != 0 ]; then
-    echo "Failed to get options"
-    exit 1
-fi
-
-eval set -- "$OPTS"
-
 # The default repository directory is the current one
 LOCAL_REPO=$PWD
 
@@ -105,6 +93,20 @@ BASELINE="baseline"
 # The baseline branch defaulting to 'master'
 BASELINE_BRANCH=master
 
+# Use pushd here so when the script exits, the CWD will automatically
+# be the initial one before calling this script.
+pushd $LOCAL_REPO
+
+# Global variable to test if a change occured during the last merge
+# or not. If one branch is added, deleted or updated, this variable
+# will be different from zero and will lead to the merge operation
+# followed by an update of the tree.
+CHANGED=0
+
+######################################################################
+#
+# The help usage function displaying options and default values
+#
 Help() {
     echo
 
@@ -125,58 +127,61 @@ Help() {
     echo
 }
 
-while true; do
+######################################################################
+#
+# Parsing options from command line.
+#
+options_setup() {
 
-    OPT=$1
-    shift
+    SHORTOPT="hl:r:b:i:t:"
+    LONGOPT="help,local:,remote:,baseline:,integ:,track:"
 
-    if [ "$OPT" = "" ]; then
-	break
+    OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
+
+    if [ $? != 0 ]; then
+	echo "Failed to get options"
+	exit 1
     fi
 
-    case "$OPT" in
-	--help|-h)
-	    Help
-	    exit 0 # We just display the help and exit
-	    ;;
+    eval set -- "$OPTS"
 
-	--local|-l)
-	    LOCAL_REPO=$1
-	    ;;
+    while true; do
 
-	--remote|-r)
-	    REMOTE_REPO=$1
-	    ;;
+	OPT=$1
+	shift
 
-	--baseline|-b)
-	    BASELINE=$1
-	    ;;
-
-	--integ:-i)
-	    INTEG_BRANCH=$1
-	    ;;
-
-	--)
+	if [ "$OPT" = "" ]; then
 	    break
-	    ;;
-    esac
-done
+	fi
 
-# The remote branch in git repository
-REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
+	case "$OPT" in
+	    --help|-h)
+		Help
+		exit 0 # We just display the help and exit
+		;;
 
-# Use pushd here so when the script exits, the CWD will automatically
-# be the initial one before calling this script.
-pushd $LOCAL_REPO
+	    --local|-l)
+		LOCAL_REPO=$1
+		;;
 
-# The configuration file containing the name + url + branch
-CONFIG=$(pmwg-ci-config)
+	    --remote|-r)
+		REMOTE_REPO=$1
+		;;
 
-# Global variable to test if a change occured during the last merge
-# or not. If one branch is added, deleted or updated, this variable
-# will be different from zero and will lead to the merge operation
-# followed by an update of the tree.
-CHANGED=0
+	    --baseline|-b)
+		BASELINE=$1
+		;;
+
+	    --integ|-i)
+		INTEG_BRANCH=$1
+		;;
+
+	    --)
+		break
+		;;
+	esac
+    done
+}
 
 ######################################################################
 #
@@ -203,6 +208,10 @@ git_rerere_setup() {
 # Check we have a configuration file before continuing
 #
 config_setup() {
+
+    # The configuration file containing the name + url + branch
+    CONFIG=$(pmwg-ci-config)
+
     if [ "$CONFIG" == "" ]; then
 	echo "No configuration file found, aborting."
 	exit 1
@@ -244,6 +253,8 @@ baseline_branch_setup() {
 # !! initialized variables dependencies                            !!
 #
 do_setup() {
+
+    options_setup $@
 
     git_rerere_setup
 
@@ -399,7 +410,7 @@ do_update_remote() {
 
 # Do the entire setup, the function makes sure the setup functions are
 # called in the right order for variable dependencies
-do_setup
+do_setup $@
 
 # Remove all branches present in the git tree but no longer tracked in
 # the CONFIG file
@@ -474,6 +485,9 @@ while read LINE; do
 done < $CONFIG
 
 echo "Done, merged $MERGED topic(s)."
+
+# The remote branch in git repository
+REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
 
 echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
 read RES
