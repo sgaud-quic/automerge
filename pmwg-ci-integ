@@ -12,13 +12,12 @@
 # first place, it is up to the user to purge the rerere cache and redo
 # a clean resolution conflict.
 #
-# The merge common point is *always the latest tag*.
+# The merge common point is by default the latest tag, or the latest
+# commit id specified in the command line option.
 #
 # 1. How to use it
 #
 #  - Create a Linux clean tree
-#
-#  - Create one 'baseline' branch
 #
 #  - Create one configuration file located at (topmost priority):
 #    - <linux>/.pmwg-ci/config
@@ -34,13 +33,19 @@
 # 
 #    <user> <url> <branch>
 #
-#  - Comments are allowed
+#  - Comments are allowed with '#' format
 # 
+#  - The baseline *must* be specified
+#
 # eg.
 #
+# baseline git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git master
 # ulf.hansson http://git.linaro.org/people/ulf.hansson/linux-pm.git next
 # andy.gross https://git.linaro.org/people/andy.gross/linux-pm.git for-pm-int
-# 
+#
+# By default the baseline name is 'baseline' but its name can be changed
+# via the options in the command line parameters.
+#
 # 3. Conflict resolution
 #
 # As soon as there is a conflict detected, the merge tool is invoked,
@@ -126,7 +131,7 @@ Help() {
     echo "	 -r|--remote <url>	: URL to the remote repository [$REMOTE_REPO]"
     echo "	 -b|--baseline <name>	: Baseline name [$BASELINE]"
     echo "	 -i|--integ <name>	: Integration branch name [$INTEG_BRANCH]"
-    echo "	 -t|--track tag|head	 changes on the latest tag or HED on branc [$TRACK]"
+    echo "	 -t|--track tag|head	: Changes on the latest tag or HEAD on branch [$TRACK]"
 
     echo
 }
