@@ -393,17 +393,18 @@ do_add_new() {
 
 do_update_baseline() {
 
-    TAG1=$(get_last_change_id)
+    ID1=$(get_last_change_id)
 
     echo "Updating $BASELINE ..."
+
     git remote update $BASELINE 2>&1
 
-    TAG2=$(get_last_change_id)
+    ID2=$(get_last_change_id)
 
-    echo latest tag is $TAG2
+    echo latest tag/id is $ID2
 
-    if [ "$TAG1" != "$TAG2" ]; then
-	echo "$BASELINE has new tag $TAG2."
+    if [ "$ID1" != "$ID2" ]; then
+	echo "$BASELINE has new tagi/id $ID2."
 	CHANGED=$((CHANGED + 1))
     fi
 
@@ -419,10 +420,16 @@ do_update_remote() {
     UPDATED=0
 
     while read LINE; do
-	
+
 	echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
 	
 	REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
+
+	if [ "$REMOTE_NAME" = "$BASELINE" ]; then
+		continue
+	fi
+
+	echo "Updating $REMOTE_NAME"
 	
 	RES=$(git remote update $REMOTE_NAME 2>&1 | wc -l)
 	if [ $RES -gt 1 ]; then
