@@ -16,9 +16,9 @@ GIT_DESCR=$(git describe --abbrev=$ABBREV)
 # Build the url
 KERNELCI_URL=https://storage.kernelci.org/pmwg/integ/$GIT_DESCR/build-logs-summary.txt
 
-BLAME_SCRIPT=pmwg-ci-blame
+BLAME_SCRIPT=ci-blame
 
-pmwg-ci_report() {
+ci_report() {
 
     URL=$KERNELCI_URL
 
@@ -56,4 +56,4 @@ pmwg-ci_report() {
     return $RET
 }
 
-pmwg-ci_report
+ci_report

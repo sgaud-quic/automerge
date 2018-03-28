@@ -1,6 +1,6 @@
 #!/bin/bash
 BASELINE_BRANCH="baseline"
-POWERCI_CONFIG=$(pmwg-ci-config)
+CI_CONFIG=$(ci-config)
 FILE=$1
 LINE=$2
 ERROR=$3
@@ -42,7 +42,7 @@ while read LINE; do
 	break
     fi
 
-done < $POWERCI_CONFIG
+done < $CI_CONFIG
 
 if [ $FOUND -eq 1 ]; then
 

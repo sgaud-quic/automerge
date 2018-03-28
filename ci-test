@@ -16,7 +16,7 @@ ABBREV=12
 # Get the git description conforming to kernelci
 GIT_DESCR=$(git describe --abbrev=$ABBREV)
 
-pmwg-ci_test() {
+ci_test() {
 	# Test already done
 	git tag | grep -q test-$GIT_DESCR && return 1
 
@@ -37,4 +37,4 @@ pmwg-ci_test() {
 
 }
 
-pmwg-ci_test
+ci_test

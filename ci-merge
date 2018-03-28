@@ -20,11 +20,11 @@
 #  - Create a Linux clean tree
 #
 #  - Create one configuration file located at (topmost priority):
-#    - <linux>/.pmwg-ci/config
-#    - $HOME/.pmwg-ci/config
-#    - /etc/pmwg-ci.conf
+#    - <linux>/.ci/config
+#    - $HOME/.ci/config
+#    - /etc/ci.conf
 #
-#  The pmwg-ci-config script will return the first configuration file
+#  The ci-config script will return the first configuration file
 #  found in the list above.
 #
 #  - Call the script from the topmost directory of the source tree
@@ -114,7 +114,7 @@ CHANGED=0
 Help() {
     echo
 
-    echo " The Power Management Continuous Integration script takes all
+    echo " The Automerge Continuous Integration script takes all
  remote repositories, merge the <baseline> <branch> into the <integ>
  branch in the <local> working repository as well as the topics
  branches defined in the configuration file and upload the merge result
@@ -223,7 +223,7 @@ git_rerere_setup() {
 config_setup() {
 
     # The configuration file containing the name + url + branch
-    CONFIG=$(pmwg-ci-config)
+    CONFIG=$(ci-config)
 
     if [ "$CONFIG" == "" ]; then
 	echo "No configuration file found, aborting."
