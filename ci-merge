@@ -20,9 +20,9 @@
 #  - Create a Linux clean tree
 #
 #  - Create one configuration file located at (topmost priority):
-#    - <linux>/.ci/config
-#    - $HOME/.ci/config
-#    - /etc/ci.conf
+#    - <linux>/.automerge/config
+#    - $HOME/.automerge/config
+#    - /etc/automerge.conf
 #
 #  The ci-config script will return the first configuration file
 #  found in the list above.
