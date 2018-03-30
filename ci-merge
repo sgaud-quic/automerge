@@ -49,7 +49,7 @@
 # 3. Conflict resolution
 #
 # As soon as there is a conflict detected, the merge tool is invoked,
-# the default is vimdiff. *Note* that will open a xterm, so if X11
+# the default is vimdiff. *Note* that will open a terminal, so if X11
 # forwarding is not set with the ssh connection (if any) the
 # integration process will fail.
 #
@@ -218,6 +218,18 @@ git_rerere_setup() {
 
 ######################################################################
 #
+# Use appropriate terminal
+#
+terminal() {
+    if [ -x /usr/bin/x-terminal-emulator ]; then
+        x-terminal-emulator $@
+    else
+        xterm $@
+    fi
+}
+
+######################################################################
+#
 # Check we have a configuration file before continuing
 #
 config_setup() {
@@ -366,7 +378,7 @@ do_add_new() {
     echo "Adding all remotes new ..."
 
     ADDED=0
-    
+
     while read LINE; do
 	
 	# Ignore commented line
@@ -383,7 +395,7 @@ do_add_new() {
 	    ADDED=$((ADDED + 1))
 	fi
     done < $CONFIG
-    
+
     echo "Done, added $ADDED new remote(s)."
 
     CHANGED=$((ADDED + CHANGED))
@@ -416,7 +428,7 @@ do_update_baseline() {
 do_update_remote() {
 
     echo "Updating the remotes ..."
-    
+
     UPDATED=0
 
     while read LINE; do
@@ -517,7 +529,7 @@ while read LINE; do
     git merge --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
     if [ $? -ne 0 ]; then
 	echo "Merge failed, manual merge"
-	xterm -e "git mergetool -y"
+	terminal -e "git mergetool -y"
 	git commit -a --no-edit
     fi
 
