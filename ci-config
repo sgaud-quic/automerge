@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # config files are ordered by priority, first found is selected
-CONFIG_PATH=$PWD/.automerge/config:$HOME/.automerge/config:/etc/automerge.conf
+DEFAULT_CONFIG_PATH=$PWD/.automerge/config:$HOME/.automerge/config:/etc/automerge.conf
+CONFIG_PATH=${CONFIG_PATH:-$DEFAULT_CONFIG_PATH}
 
 for i in $(echo -e ${CONFIG_PATH//:/\\n}); do
 	if [ -f $i ]; then
