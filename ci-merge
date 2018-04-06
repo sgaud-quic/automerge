@@ -91,6 +91,7 @@ REMOTE_REPO="ssh://git@git.linaro.org/power/linux.git"
 
 # The integration branch
 INTEG_BRANCH="integ"
+INTEG_BRANCH_NEW_NAME=""
 
 # The baseline remote repo
 BASELINE="baseline"
@@ -546,4 +547,9 @@ echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
 read RES
 if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
 	git push -f $REMOTE_INTEG_BRANCH
+
+	if [ ! -z $INTEG_BRANCH_NEW_NAME ]; then
+		REMOTE_INTEG_BRANCH_NEW_NAME="$REMOTE_REPO $INTEG_BRANCH_NEW_NAME"
+		git push $REMOTE_INTEG_BRANCH_NEW_NAME
+	fi
 fi
