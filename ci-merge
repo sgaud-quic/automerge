@@ -529,9 +529,14 @@ while read LINE; do
 
     git merge --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
     if [ $? -ne 0 ]; then
-	echo "Merge failed, manual merge"
-	terminal -e "git mergetool -y"
-	git commit -a --no-edit
+        if [ -z $DISPLAY ]; then
+            echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
+            git merge --abort
+        else
+            echo "Merge failed, manual merge"
+            terminal -e "git mergetool -y"
+            git commit -a --no-edit
+        fi
     fi
 
     MERGED=$((MERGED+1))
