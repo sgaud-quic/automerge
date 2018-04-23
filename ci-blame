@@ -24,7 +24,7 @@ FOUND=0
 # If the commit id belongs to the baseline branch, then it is common
 # to all branches and we can just ignore this commit
 #
-echo $BRANCH | grep -q $BASELINE_BRANCH 
+echo $BRANCH | grep -q $BASELINE_BRANCH
 if [ $? -eq 0 ]; then
 	exit 0
 fi

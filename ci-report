@@ -48,7 +48,7 @@ ci_report() {
 
     # Add a tag to the tree, so we know that the branch can't be tested
     if [ $RET -ne 0]; then
-        git tag blame-$GIT_DESCR
+	git tag blame-$GIT_DESCR
     fi
 
     # Add a tag to the tree, so we know the report was already done.
