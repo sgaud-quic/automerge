@@ -102,6 +102,14 @@ BASELINE_BRANCH=master
 # Track the tag or HEAD changes
 TRACK=tag
 
+# Global cache of rerere resolutions
+RERERE_CACHE="https://git.linaro.org/people/amit.kucheria/qclt-rr-cache.git"
+
+# Temporary directory to clone the rerere cache into
+# This directory is not deleted at the end to allow for new merge resolutions to
+# be pushed to git
+TMP_DIR=$(mktemp -d --suffix -automerge.rerere)
+
 # Global variable to test if a change occured during the last merge
 # or not. If one branch is added, deleted or updated, this variable
 # will be different from zero and will lead to the merge operation
@@ -129,6 +137,7 @@ Help() {
     echo "	 -b|--baseline <name>	: Baseline name [$BASELINE]"
     echo "	 -i|--integ <name>	: Integration branch name [$INTEG_BRANCH]"
     echo "	 -t|--track tag|head	: Changes on the latest tag or HEAD on branch [$TRACK]"
+    echo "	 -c|--cache <name>	: URL to rerere cache repository [$RERERE_CACHE]"
 
     echo
 }
@@ -139,8 +148,8 @@ Help() {
 #
 options_setup() {
 
-    SHORTOPT="hl:r:b:i:t:"
-    LONGOPT="help,local:,remote:,baseline:,integ:,track:"
+    SHORTOPT="hl:r:b:i:t:c:"
+    LONGOPT="help,local:,remote:,baseline:,integ:,track:,cache:"
 
     OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
 
@@ -190,6 +199,10 @@ options_setup() {
 		INTEG_BRANCH=$1
 		;;
 
+	    --cache|-c)
+		RERERE_CACHE=$1
+		;;
+
 	    --)
 		break
 		;;
@@ -204,17 +217,20 @@ options_setup() {
 #
 git_rerere_setup() {
 
-    RES=$(git config --local --bool --get rerere.enabled)
-
-    if [ $? -eq 0 -a "${RES,,}" == "true" ]; then
-	return 0
-    fi
-
-    # At this point, git config returned an error which means the
-    # option is not set in the config file or the option is not set to
-    # "true". In both cases we enable the option
+    # we enable the rerere option
     echo "Enable Reuse-Recorded-Resolution."
     git config --local --bool rerere.enabled true
+
+    git clone -q --depth=1 $RERERE_CACHE $TMP_DIR
+    if [ $? -ne 0 ]; then
+	echo "WARNING: Unable to get shared rerere cache"
+	return 1
+    fi
+
+    $(cd $LOCAL_REPO/.git && git archive --remote=$TMP_DIR HEAD | tar xf -)
+    echo "Downloaded shared rerere cache"
+
+    return 0
 }
 
 ######################################################################
@@ -553,7 +569,7 @@ while read LINE; do
 
     echo "Merging $REMOTE_NAME/$REMOTE_BRANCH"
 
-    git merge --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
+    git merge -q --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
     if [ $? -ne 0 ]; then
         if [ -z $DISPLAY ]; then
             echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
@@ -577,10 +593,17 @@ REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
 echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
 read RES
 if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
-	git push -f $REMOTE_INTEG_BRANCH
+    git push -f $REMOTE_INTEG_BRANCH
 
-	if [ ! -z $INTEG_BRANCH_NEW_NAME ]; then
-		REMOTE_INTEG_BRANCH_NEW_NAME="$REMOTE_REPO $INTEG_BRANCH_NEW_NAME"
-		git push $REMOTE_INTEG_BRANCH_NEW_NAME
-	fi
+    if [ ! -z $INTEG_BRANCH_NEW_NAME ]; then
+	REMOTE_INTEG_BRANCH_NEW_NAME="$REMOTE_REPO $INTEG_BRANCH_NEW_NAME"
+	git push $REMOTE_INTEG_BRANCH_NEW_NAME
+    fi
+fi
+
+echo -n "Copy any new merge conflict resolutions to the rerere cache ($TMP_DIR) [Y/n]? "
+read RES
+if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
+    $(cd $LOCAL_REPO/.git && cp -a rr-cache $TMP_DIR)
+    echo "Please make sure to _push_ any new conflict resolutions in $TMP_DIR manually to $RERERE_CACHE"
 fi
