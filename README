@@ -1,0 +1,33 @@
+Introduction
+------------
+
+automerge is a set of scripts used to manage continuous integration of a
+set of branches being developed against mainline. Functionally, it aspires
+to do what linux-next does.
+
+ci-merge: The script that actually merges the branches together based on a
+	  config file listing the various branches.
+ci-report: Reports any warnings/errors resulting from the build
+ci-test: Run some tests on the new build
+
+
+ci-blame: Helper script used to report the commit ID that introduced a new
+	  warning/error in the build
+ci-config: Helper script that returns the configuration for the branches to
+	   be used
+ci.conf.sample: Sample configuration file
+
+
+Getting Started
+---------------
+Setup a config file. You can do this by creating you own from
+ci.conf.sample, e.g. in $HOME/.automerge/config or by setting CONFIG_PATH
+environment variable to the path of a valid config file.
+
+Example
+-------
+$ export CONFIG_PATH=$HOME/work/sources/automerge-qclt-configs.git
+$ export GIT_LOCAL_LINUX_REPO=/work/sources/linux-ci.git
+$ export GIT_REMOTE_LINUX_REPO=ssh://git@git.linaro.org/people/amit.kucheria/kernel.git
+$ export GIT_LINUX_INTEG_BRANCH=integ
+$ ci-merge -l $GIT_LOCAL_LINUX_REPO -r $GIT_REMOTE_LINUX_REPO -i $GIT_LINUX_INTEG_BRANCH -t tag | logger
