@@ -375,7 +375,7 @@ do_remove_old() {
 
     for REMOTE_NAME in $(git remote); do
 
-	REMOTE_BRANCH=$(git remote show $REMOTE_NAME | grep tracked | awk '{ print $1 }')
+	REMOTE_BRANCH=$(git rev-parse --symbolic-full-name --abbrev-ref --remotes=$REMOTE_NAME | cut -d'/' -f1 --complement)
 	REMOTE_URL=$(git remote get-url $REMOTE_NAME)
 	FOUND=0
 
