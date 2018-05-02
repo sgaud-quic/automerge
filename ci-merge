@@ -220,6 +220,7 @@ git_rerere_setup() {
     # we enable the rerere option
     echo "Enable Reuse-Recorded-Resolution."
     git config --local --bool rerere.enabled true
+    git config --local --bool rerere.autoupdate true
 
     git clone -q --depth=1 $RERERE_CACHE $TMP_DIR
     if [ $? -ne 0 ]; then
