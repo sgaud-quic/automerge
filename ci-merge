@@ -573,8 +573,12 @@ while read LINE; do
     git merge -q --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
     if [ $? -ne 0 ]; then
         if [ -z $DISPLAY ]; then
-            echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
-            git merge --abort
+            # try to commit, may be resolved by rerere
+            git commit --no-edit
+            if [ $? -ne 0 ]; then
+                echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
+                git merge --abort
+            fi
         else
             echo "Merge failed, manual merge"
             terminal -e "git mergetool -y"
