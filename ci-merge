@@ -575,9 +575,11 @@ while read LINE; do
         if [ -z $DISPLAY ]; then
             # try to commit, may be resolved by rerere
             git commit --no-edit
-            if [ $? -ne 0 ]; then
+            commit_ec=$?
+            if [ $commit_ec -ne 0 ]; then
                 echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
                 git merge --abort
+                exit $commit_ec
             fi
         else
             echo "Merge failed, manual merge"
