@@ -87,7 +87,7 @@
 LOCAL_REPO=$PWD
 
 # The default remote repository
-REMOTE_REPO="ssh://git@git.linaro.org/power/linux.git"
+REMOTE_REPO=""
 
 # The integration branch
 INTEG_BRANCH="integ"
@@ -103,7 +103,7 @@ BASELINE_BRANCH=master
 TRACK=tag
 
 # Global cache of rerere resolutions
-RERERE_CACHE="https://git.linaro.org/people/amit.kucheria/qclt-rr-cache.git"
+RERERE_CACHE=""
 
 # Temporary directory to clone the rerere cache into
 # This directory is not deleted at the end to allow for new merge resolutions to
@@ -210,17 +210,50 @@ options_setup() {
     done
 }
 
+
+######################################################################
+#
+# Verify that the local and remote git repos exist so we don't
+# end up with strange errors
+#
+verify_repos() {
+
+    git ls-remote -h $LOCAL_REPO > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+	      echo "ERROR: Not found LOCAL_REPO -> $LOCAL_REPO"
+	      exit 1
+    fi
+
+    if [ ! -z $RERERE_CACHE ]; then
+        git ls-remote -h $RERERE_CACHE > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+	          echo "ERROR: Not found RERERE_CACHE -> $RERERE_CACHE"
+	          exit 1
+        fi
+    fi
+
+    if [ ! -z $REMOTE_REPO ]; then
+        git ls-remote -h $REMOTE_REPO > /dev/null 2>&1
+        if [ $? -ne 0 ]; then
+	          echo "ERROR: Not found REMOTE_REPO -> $REMOTE_REPO"
+	          exit 1
+        fi
+    fi
+    echo "Verified existence of local and remote repos: Success"
+}
+
 ######################################################################
 #
 # The merge process can be greatly simplified by using the
-# reuse-recorded-resolution (rerere), but this one must be enabled
+# reuse-recorded-resolution (rerere). Make sure it is enabled and create
+# of a copy of the shared rerere cache locally.
 #
 git_rerere_setup() {
 
-    # we enable the rerere option
-    echo "Enable Reuse-Recorded-Resolution."
     git config --local --bool rerere.enabled true
     git config --local --bool rerere.autoupdate true
+    # we enable the rerere option
+    echo "Reuse-Recorded-Resolution: Enabled"
 
     git clone -q --depth=1 $RERERE_CACHE $TMP_DIR
     if [ $? -ne 0 ]; then
@@ -334,9 +367,18 @@ do_setup() {
 
     options_setup $@
 
+    verify_repos
+
     path_setup
 
-    git_rerere_setup
+    if [ ! -z $RERERE_CACHE ]; then
+        git_rerere_setup
+    else
+        # If we don't use the rerere cache, explicity disable rerere
+        # since the user wants to see all merge conflicts
+        git config --local --bool rerere.enabled false
+        echo "Reuse-Recorded-Resolution: Disabled"
+    fi
 
     config_setup
 
@@ -594,17 +636,20 @@ done < $CONFIG
 
 echo "Done, merged $MERGED topic(s)."
 
-# The remote branch in git repository
-REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
 
-echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
-read RES
-if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
-    git push -f $REMOTE_INTEG_BRANCH
+if [ ! -z $REMOTE_REPO ]; then
+    # The remote branch in git repository
+    REMOTE_INTEG_BRANCH="$REMOTE_REPO $INTEG_BRANCH"
 
-    if [ ! -z $INTEG_BRANCH_NEW_NAME ]; then
-	REMOTE_INTEG_BRANCH_NEW_NAME="$REMOTE_REPO $INTEG_BRANCH_NEW_NAME"
-	git push $REMOTE_INTEG_BRANCH_NEW_NAME
+    echo -n "Push branch to $REMOTE_INTEG_BRANCH [Y/n]? "
+    read RES
+    if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
+        git push -f $REMOTE_INTEG_BRANCH
+
+        if [ ! -z $INTEG_BRANCH_NEW_NAME ]; then
+	          REMOTE_INTEG_BRANCH_NEW_NAME="$REMOTE_REPO $INTEG_BRANCH_NEW_NAME"
+	          git push $REMOTE_INTEG_BRANCH_NEW_NAME
+        fi
     fi
 fi
 
