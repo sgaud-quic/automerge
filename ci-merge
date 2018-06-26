@@ -252,6 +252,8 @@ git_rerere_setup() {
 
     git config --local --bool rerere.enabled true
     git config --local --bool rerere.autoupdate true
+    git config --local merge.conflictstyle merge
+
     # we enable the rerere option
     echo "Reuse-Recorded-Resolution: Enabled"
 
