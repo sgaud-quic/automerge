@@ -588,7 +588,7 @@ git branch | grep -q "$INTEG_BRANCH$"
 if [ $? -eq 0 ]; then
 	echo "The integration branch already exists."
 
-	INTEG_BRANCH_NEW_NAME=$INTEG_BRANCH-$(date +%Y%m%d-%H%M%S)-$(git log --format="%h" -n 1)
+	INTEG_BRANCH_NEW_NAME=$INTEG_BRANCH-$(date +%Y%m%d-%H%M%S)-$(git describe)
 
 	echo "Rename it to $INTEG_BRANCH_NEW_NAME"
 	git branch -M $INTEG_BRANCH $INTEG_BRANCH_NEW_NAME
