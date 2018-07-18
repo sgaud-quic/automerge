@@ -148,8 +148,8 @@ Help() {
 #
 options_setup() {
 
-    SHORTOPT="hl:r:b:i:t:c:"
-    LONGOPT="help,local:,remote:,baseline:,integ:,track:,cache:"
+    SHORTOPT="hl:r:b:i:t:c:f:"
+    LONGOPT="help,local:,remote:,baseline:,integ:,track:,cache:,config:"
 
     OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
 
@@ -203,6 +203,9 @@ options_setup() {
 		RERERE_CACHE=$1
 		;;
 
+	    --config|-f)
+		CONFIG=$1
+		;;
 	    --)
 		break
 		;;
@@ -288,7 +291,9 @@ terminal() {
 config_setup() {
 
     # The configuration file containing the name + url + branch
-    CONFIG=$(ci-config)
+    if [ -z "${CONFIG}" ]; then
+	    CONFIG=$(ci-config)
+    fi
 
     if [ "$CONFIG" == "" ]; then
 	echo "No configuration file found, aborting."
