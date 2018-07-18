@@ -601,6 +601,9 @@ echo "Merging topic branches..."
 
 MERGED=0
 
+# Dup STDIN onto fd 3
+exec 3<&0
+
 while read LINE; do
 
     echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
@@ -626,15 +629,18 @@ while read LINE; do
                 exit $commit_ec
             fi
         else
-            echo "Merge failed, manual merge"
-            terminal -e "git mergetool -y"
-            git commit -a --no-edit
+	    echo "Merge failed, manual merge"
+	    git mergetool -y <&3 || exit
+	    git commit -a --no-edit
         fi
     fi
 
     MERGED=$((MERGED+1))
 
 done < $CONFIG
+
+# Close temporary STDIN clone
+exec 3<&-
 
 echo "Done, merged $MERGED topic(s)."
 
