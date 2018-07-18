@@ -491,7 +491,7 @@ do_remove_old() {
 
 do_add_new() {
 
-    echo "Adding all remotes new ..."
+    echo "Adding new remotes..."
 
     ADDED=0
 
@@ -610,11 +610,10 @@ fi
 TAG=$(get_last_change_id)
 echo "Latest tag is $TAG"
 
-echo "Check the 'integration' branch exists"
 git branch | grep -q "$INTEG_BRANCH$"
 
 if [ $? -eq 0 ]; then
-	echo "The integration branch already exists."
+	echo "The integration branch ($INTEG_BRANCH) already exists."
 
 	INTEG_BRANCH_NEW_NAME=$INTEG_BRANCH-$(date +%Y%m%d-%H%M%S)-$(git describe)
 
@@ -650,7 +649,8 @@ while read LINE; do
         MERGER="$REMOTE_NAME/$REMOTE_BRANCH"
     fi
 
-    echo "----------------------\nMerging $MERGER"
+    echo "------------------------------------------"
+    echo " ** Merging topic branch: $MERGER"
 
     git merge -q --no-ff --no-edit $MERGER
     if [ $? -ne 0 ]; then
