@@ -620,9 +620,16 @@ while read LINE; do
 	continue
     fi
 
-    echo "Merging $REMOTE_NAME/$REMOTE_BRANCH"
+    git rev-parse --quiet --verify "override/$REMOTE_NAME"
+    if [ $? -eq 0 ]; then
+        MERGER="override/$REMOTE_NAME"
+    else
+        MERGER="$REMOTE_NAME/$REMOTE_BRANCH"
+    fi
 
-    git merge -q --no-ff --no-edit $REMOTE_NAME/$REMOTE_BRANCH
+    echo "Merging $MERGER"
+
+    git merge -q --no-ff --no-edit $MERGER
     if [ $? -ne 0 ]; then
         if [ -z $DISPLAY ]; then
             # try to commit, may be resolved by rerere
