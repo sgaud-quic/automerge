@@ -49,9 +49,7 @@
 # 3. Conflict resolution
 #
 # As soon as there is a conflict detected, the merge tool is invoked,
-# the default is vimdiff. *Note* that will open a terminal, so if X11
-# forwarding is not set with the ssh connection (if any) the
-# integration process will fail.
+# the default is vimdiff.
 #
 # Take care of correctly fix the conflicts, otherwise the bad
 # resolutions will be saved and reused later by the rerere mechanism,
@@ -292,18 +290,6 @@ git_rerere_update() {
 		    git add -A &&
 		    git commit --no-edit -s -m 'New rr-cache entries from ci-merge')
 	fi
-    fi
-}
-
-######################################################################
-#
-# Use appropriate terminal
-#
-terminal() {
-    if [ -x /usr/bin/x-terminal-emulator ]; then
-	x-terminal-emulator $@
-    else
-	xterm $@
     fi
 }
 
