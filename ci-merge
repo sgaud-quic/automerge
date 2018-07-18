@@ -105,10 +105,7 @@ TRACK=tag
 # Global cache of rerere resolutions
 RERERE_CACHE=""
 
-# Temporary directory to clone the rerere cache into
-# This directory is not deleted at the end to allow for new merge resolutions to
-# be pushed to git
-TMP_DIR=$(mktemp -d --suffix -automerge.rerere)
+RERERE_CACHE_DIR=""
 
 # Global variable to test if a change occured during the last merge
 # or not. If one branch is added, deleted or updated, this variable
@@ -260,16 +257,33 @@ git_rerere_setup() {
     # we enable the rerere option
     echo "Reuse-Recorded-Resolution: Enabled"
 
-    git clone -q --depth=1 $RERERE_CACHE $TMP_DIR
-    if [ $? -ne 0 ]; then
-	echo "WARNING: Unable to get shared rerere cache"
-	return 1
+    if [ -e ".git/rr-cache" -a \! -L ".git/rr-cache" ]; then
+	echo "${TMP_DIR} already exists but isn't a symlink"
+	return 0
     fi
 
-    $(cd $LOCAL_REPO/.git && git archive --remote=$TMP_DIR HEAD | tar xf -)
+    RERERE_CACHE_DIR=".automerge/rr-cache"
+    if [ -d ${RERERE_CACHE_DIR} ]; then
+	(cd ${RERERE_CACHE_DIR} && git fetch && git reset --hard origin/master)
+    else
+	mkdir -p ".automerge"
+	git clone -q $RERERE_CACHE $RERERE_CACHE_DIR
+	ln -sfT ../${RERERE_CACHE_DIR}/rr-cache .git/rr-cache
+    fi
+
     echo "Downloaded shared rerere cache"
 
     return 0
+}
+
+git_rerere_update() {
+    if [ -n "${RERERE_CACHE_DIR}" ]; then
+	if [[ $(cd ${RERERE_CACHE_DIR} && git status --porcelain) ]]; then
+	    (cd ${RERERE_CACHE_DIR} &&
+		    git add -A &&
+		    git commit --no-edit -s -m 'New rr-cache entries from ci-merge')
+	fi
+    fi
 }
 
 ######################################################################
@@ -673,9 +687,4 @@ if [ ! -z $REMOTE_REPO ]; then
     fi
 fi
 
-echo -n "Copy any new merge conflict resolutions to the rerere cache ($TMP_DIR) [Y/n]? "
-read RES
-if [ "${RES,,}" == "y" -o "$RES" == "" ]; then
-    $(cd $LOCAL_REPO/.git && cp -a rr-cache $TMP_DIR)
-    echo "Please make sure to _push_ any new conflict resolutions in $TMP_DIR manually to $RERERE_CACHE"
-fi
+git_rerere_update
