@@ -83,6 +83,9 @@
 # the local repo with the name 'integ-<commit-id>
 #
 
+# We run in non-interactive mode by default
+INTERACTIVE=0
+
 # The default repository directory is the current one
 LOCAL_REPO=$PWD
 
@@ -135,6 +138,8 @@ Help() {
     echo "	 -i|--integ <name>	: Integration branch name [$INTEG_BRANCH]"
     echo "	 -t|--track tag|head	: Changes on the latest tag or HEAD on branch [$TRACK]"
     echo "	 -c|--cache <name>	: URL to rerere cache repository [$RERERE_CACHE]"
+    echo "	 -f|--config <name>	: Config file listing branches to be merged [$CONFIG]"
+    echo "	 -n|--interactive	: Whether to run the tool interactively [$INTERACTIVE]"
 
     echo
 }
@@ -145,8 +150,8 @@ Help() {
 #
 options_setup() {
 
-    SHORTOPT="hl:r:b:i:t:c:f:"
-    LONGOPT="help,local:,remote:,baseline:,integ:,track:,cache:,config:"
+    SHORTOPT="hnl:r:b:i:t:c:f:"
+    LONGOPT="help,interactive,local:,remote:,baseline:,integ:,track:,cache:,config:"
 
     OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
 
@@ -172,6 +177,10 @@ options_setup() {
 		exit 0 # We just display the help and exit
 		;;
 
+	    --interactive|-n)
+		INTERACTIVE=1
+		;;
+	    
 	    --local|-l)
 		LOCAL_REPO=$1
 		;;
@@ -641,11 +650,11 @@ while read LINE; do
         MERGER="$REMOTE_NAME/$REMOTE_BRANCH"
     fi
 
-    echo "Merging $MERGER"
+    echo "----------------------\nMerging $MERGER"
 
     git merge -q --no-ff --no-edit $MERGER
     if [ $? -ne 0 ]; then
-        if [ -z $DISPLAY ]; then
+	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere
             git commit --no-edit
             commit_ec=$?
