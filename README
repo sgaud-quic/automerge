@@ -17,17 +17,47 @@ ci-config: Helper script that returns the configuration for the branches to
 	   be used
 ci.conf.sample: Sample configuration file
 
+Quick Start
+-----------
 
-Getting Started
----------------
-Setup a config file. You can do this by creating you own from
-ci.conf.sample, e.g. in $HOME/.automerge/config or by setting CONFIG_PATH
-environment variable to the path of a valid config file.
+$ Setup a config file.
 
-Example
--------
-$ export CONFIG_PATH=$HOME/work/sources/automerge-qclt-configs.git/automerge-ci.conf
-$ export GIT_LOCAL_LINUX_REPO=/work/sources/linux-ci.git
-$ export GIT_REMOTE_LINUX_REPO=ssh://git@git.linaro.org/people/amit.kucheria/kernel.git
-$ export GIT_LINUX_INTEG_BRANCH=integ
-$ ci-merge -l $GIT_LOCAL_LINUX_REPO -r $GIT_REMOTE_LINUX_REPO -i $GIT_LINUX_INTEG_BRANCH -t tag | logger
+  You can do this by creating you own from ci.conf.sample, e.g. in
+  $HOME/.automerge/config, or point to an existing with using --config/-f
+  option
+
+$ export LOCAL_LINUX_REPO=~/work/sources/linux-ci.git
+$ export RR_CACHE=ssh://git@git.linaro.org/landing-teams/working/qualcomm/automerge-rrcache.git
+
+(Interactive run)
+$ ci-merge -l $LOCAL_LINUX_REPO -c $RR_CACHE -f ~/.automerge/automerge-ci.conf -n
+
+Conflict Resolution and sharing a rerere cache within a team
+------------------------------------------------------------
+The following example is used by the Qualcomm Landing Team to update their
+shared rerere cache:
+
+1. Make sure you have a local linux repo (LOCAL_LINUX_REPO)
+
+2. If needed, add any new branches to the config file pointed to by -f or
+autodetected by ci-config. The Qualcomm Landing Team configs live here[1]
+
+3. Run automerge locally with any new branch or branch modifications
+   $ cd <LOCAL_LINUX_REPO>
+   $ export RR_CACHE=ssh://git@git.linaro.org/landing-teams/working/qualcomm/automerge-rrcache.git
+   $ ci-merge -c $RR_CACHE -f ~/.automerge/automerge-ci.conf -n
+
+   Resolve the merge conflicts till ci-merge runs successfully
+
+4. Commit the rr-cache from .git/rr-cache and then push to git.linaro.org
+   $ git commit
+   $ git push
+
+   (You might need to setup a pushurl for the rr-cache git repo for git
+   push to work)
+
+5. Push your changes to automerge configs or branches to glo[1]
+
+6. Rerun step 3 again. There should be no conflict now, since the resolution was pushed in step 4.
+
+[1] https://git.linaro.org/landing-teams/working/qualcomm/configs.git
