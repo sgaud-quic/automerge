@@ -443,7 +443,7 @@ do_remove_old() {
 	    # ignore commented lines
 	    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
 
-	    echo $LINE | grep "^$REMOTE_NAME\b" | grep $REMOTE_URL | grep -q $REMOTE_BRANCH
+	    echo $LINE | grep -q "^$REMOTE_NAME\b" | grep -q $REMOTE_URL | grep -q $REMOTE_BRANCH
 	    if [ $? -eq 0 ]; then
 		FOUND=1
 	    fi
