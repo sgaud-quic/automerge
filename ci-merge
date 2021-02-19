@@ -434,7 +434,6 @@ do_remove_old() {
 
     for REMOTE_NAME in $(git remote); do
 
-	REMOTE_BRANCH=$(git rev-parse --symbolic-full-name --abbrev-ref --remotes=$REMOTE_NAME | cut -d'/' -f1 --complement)
 	REMOTE_URL=$(git remote get-url $REMOTE_NAME)
 	FOUND=0
 
@@ -443,7 +442,7 @@ do_remove_old() {
 	    # ignore commented lines
 	    echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
 
-	    echo $LINE | grep -q "^$REMOTE_NAME\b" | grep -q $REMOTE_URL | grep -q "$REMOTE_BRANCH"
+	    echo $LINE | grep "^$REMOTE_NAME\b" | grep -q $REMOTE_URL
 	    if [ $? -eq 0 ]; then
 		FOUND=1
 	    fi
@@ -458,7 +457,7 @@ do_remove_old() {
 	    exit 1
 	fi
 
-	echo "The remote $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH is no longer tracked."
+	echo "The remote $REMOTE_NAME $REMOTE_URL is no longer tracked."
 	echo -n "Delete it [Y/n]? "
 	read RES
 	if [ "$RES" == "Y" -o "$RES" == "y" -o "$RES" == "" ]; then
