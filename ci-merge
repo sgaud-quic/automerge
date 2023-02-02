@@ -489,7 +489,7 @@ do_add_new() {
 	REMOTE_URL=$(echo $LINE | awk '{print $2}')
 	REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
 
-	git remote | grep -q "$REMOTE_NAME"
+	git remote | grep -q "^$REMOTE_NAME$"
 	if [ $? -ne 0 ]; then
 	    echo "Adding remote $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
 	    git remote add -f -t $REMOTE_BRANCH $REMOTE_NAME $REMOTE_URL
