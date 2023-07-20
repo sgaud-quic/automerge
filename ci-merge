@@ -84,6 +84,9 @@
 # We run in non-interactive mode by default
 INTERACTIVE=0
 
+# Do not force merging of the branches if there were no changes
+FORCE=0
+
 # The default repository directory is the current one
 LOCAL_REPO=$PWD
 
@@ -138,6 +141,7 @@ Help() {
     echo "	 -c|--cache <name>	: URL to rerere cache repository [$RERERE_CACHE]"
     echo "	 -f|--config <name>	: Config file listing branches to be merged [$CONFIG]"
     echo "	 -n|--interactive	: Whether to run the tool interactively [$INTERACTIVE]"
+    echo "	 -y|--force		: Whether to force merging the branches [$FORCE]"
 
     echo
 }
@@ -148,8 +152,8 @@ Help() {
 #
 options_setup() {
 
-    SHORTOPT="hnl:r:b:i:t:c:f:"
-    LONGOPT="help,interactive,local:,remote:,baseline:,integ:,track:,cache:,config:"
+    SHORTOPT="hnl:r:b:i:t:c:f:y"
+    LONGOPT="help,interactive,local:,remote:,baseline:,integ:,track:,cache:,config:,force"
 
     OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
 
@@ -201,6 +205,10 @@ options_setup() {
 
 	    --integ|-i)
 		INTEG_BRANCH=$1
+		;;
+
+	    --force|-y)
+		FORCE=$1
 		;;
 
 	    --cache|-c)
@@ -580,7 +588,7 @@ do_update_baseline
 # If anything changed in the process (removal, addition, update) then
 # it makes sense to create a new integ branch, otherwise let the user
 # to choose to continue or abort the process
-if [ $CHANGED -eq 0 ]; then
+if [ $CHANGED -eq 0 -a $FORCE -ne 0 ]; then
     echo "No branches have changed since last time."
     echo -n "Abort building the integ branch? [Y/n]"
     read RES
