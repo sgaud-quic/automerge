@@ -645,7 +645,7 @@ while read LINE; do
     echo "------------------------------------------"
     echo " ** Merging topic branch: $MERGER"
 
-    git merge -q --no-ff --no-edit $MERGER
+    git merge -q --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER
     if [ $? -ne 0 ]; then
 	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere
