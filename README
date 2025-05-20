@@ -61,3 +61,7 @@ autodetected by ci-config. The Qualcomm Landing Team configs live here[1]
 6. Rerun step 3 again. There should be no conflict now, since the resolution was pushed in step 4.
 
 [1] https://git.linaro.org/landing-teams/working/qualcomm/configs.git
+
+License
+-------
+automerge is licensed under the GNU General Public License v2.0. See LICENSE for the full license text.
