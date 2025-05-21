@@ -1,24 +1,23 @@
-Introduction
-------------
+# Introduction
+
 
 automerge is a set of scripts used to manage continuous integration of a
 set of branches being developed against mainline. Functionally, it aspires
 to do what linux-next does.
 
 ci-merge: The script that actually merges the branches together based on a
-	  config file listing the various branches.
+    config file listing the various branches.
 ci-report: Reports any warnings/errors resulting from the build
 ci-test: Run some tests on the new build
 
 
 ci-blame: Helper script used to report the commit ID that introduced a new
-	  warning/error in the build
+    warning/error in the build
 ci-config: Helper script that returns the configuration for the branches to
-	   be used
+     be used
 ci.conf.sample: Sample configuration file
 
-Quick Start
------------
+## Quick Start
 
 $ Setup a config file.
 
@@ -32,8 +31,8 @@ $ export RR_CACHE=ssh://git@git.linaro.org/landing-teams/working/qualcomm/autome
 (Interactive run)
 $ ci-merge -l $LOCAL_LINUX_REPO -c $RR_CACHE -f ~/.automerge/automerge-ci.conf -n
 
-Conflict Resolution and sharing a rerere cache within a team
-------------------------------------------------------------
+## Conflict Resolution and sharing a rerere cache within a team
+
 The following example is used by the Qualcomm Landing Team to update their
 shared rerere cache:
 
@@ -62,6 +61,6 @@ autodetected by ci-config. The Qualcomm Landing Team configs live here[1]
 
 [1] https://git.linaro.org/landing-teams/working/qualcomm/configs.git
 
-License
--------
-automerge is licensed under the GNU General Public License v2.0. See LICENSE for the full license text.
+## License
+automerge is licensed under the GNU General Public License v2.0. See [LICENSE](LICENSE) for the full license text.
+ 
