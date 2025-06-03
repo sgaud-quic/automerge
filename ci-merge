@@ -618,7 +618,11 @@ echo "Create a new integration branch based on $TAG"
 git checkout -b $INTEG_BRANCH $TAG
 
 echo "Merging topic branches..."
-
+echo ".github/workflows/* merge=ours" >> .gitattributes
+git config merge.ours.driver true
+mkdir qcom-next
+echo "Name			SHA1" > qcom-next/SHA1s
+echo "---------		------------" >> qcom-next/SHA1s
 MERGED=0
 
 # Dup STDIN onto fd 3
@@ -644,8 +648,8 @@ while read LINE; do
 
     echo "------------------------------------------"
     echo " ** Merging topic branch: $MERGER"
-
-    git merge -q --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER
+	branch_tip=$(git rev-parse $MERGER)
+    git merge -q --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME: $branch_tip into $INTEG_BRANCH" $MERGER
     if [ $? -ne 0 ]; then
 	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere
@@ -663,6 +667,7 @@ while read LINE; do
         fi
     fi
 
+    echo "$REMOTE_NAME			$branch_tip"  >> qcom-next/SHA1s
     MERGED=$((MERGED+1))
 
 done < $CONFIG
