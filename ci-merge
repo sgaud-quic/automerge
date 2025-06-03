@@ -618,11 +618,12 @@ echo "Create a new integration branch based on $TAG"
 git checkout -b $INTEG_BRANCH $TAG
 
 echo "Merging topic branches..."
-echo ".github/workflows/* merge=ours" >> .gitattributes
-git config merge.ours.driver true
+#echo ".github/workflows/* merge=ours" >> .gitattributes
+#git config merge.ours.driver true
 mkdir qcom-next
-echo "Name			SHA1" > qcom-next/SHA1s
-echo "---------		------------" >> qcom-next/SHA1s
+#echo "Name			SHA1" > qcom-next/topic_SHA1
+printf "%-20s %-45s\n" "Name" "SHA1" >> qcom-next/topic_SHA1 
+echo "-----------------		-----------------------------" >> qcom-next/topic_SHA1
 MERGED=0
 
 # Dup STDIN onto fd 3
@@ -649,7 +650,7 @@ while read LINE; do
     echo "------------------------------------------"
     echo " ** Merging topic branch: $MERGER"
 	branch_tip=$(git rev-parse $MERGER)
-    git merge -q --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME: $branch_tip into $INTEG_BRANCH" $MERGER
+    MERGE_OUTPUT=$(git merge --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER 2>&1)
     if [ $? -ne 0 ]; then
 	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere
@@ -667,7 +668,14 @@ while read LINE; do
         fi
     fi
 
-    echo "$REMOTE_NAME			$branch_tip"  >> qcom-next/SHA1s
+    if echo "$MERGE_OUTPUT" | grep -q "Already up to date." ; then
+        echo "Nothing to merge: already up to date."
+    else
+        printf "%-20s %-45s\n" "$REMOTE_NAME" "$branch_tip" >> qcom-next/topic_SHA1 
+        #echo "$REMOTE_NAME            $branch_tip"  >> qcom-next/SHA1s
+        echo "Merge successful."
+    fi
+
     MERGED=$((MERGED+1))
 
 done < $CONFIG
