@@ -618,7 +618,6 @@ echo "Create a new integration branch based on $TAG"
 git checkout -b $INTEG_BRANCH $TAG
 
 echo "Merging topic branches..."
-
 MERGED=0
 
 # Dup STDIN onto fd 3
@@ -644,8 +643,8 @@ while read LINE; do
 
     echo "------------------------------------------"
     echo " ** Merging topic branch: $MERGER"
-
-    git merge -q --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER
+    branch_tip=$(git rev-parse $MERGER)
+    MERGE_OUTPUT=$(git merge --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER)
     if [ $? -ne 0 ]; then
 	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere
@@ -661,6 +660,12 @@ while read LINE; do
 	    git mergetool -y <&3 || exit
 	    git commit -a --no-edit
         fi
+    fi
+
+    if echo "$MERGE_OUTPUT" | grep -q "Already up to date." ; then
+        echo "Nothing to merge: Already up to date."
+    else
+        echo "Merge successful : $REMOTE_NAME : $branch_tip"
     fi
 
     MERGED=$((MERGED+1))
