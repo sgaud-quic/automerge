@@ -653,7 +653,7 @@ while read LINE; do
             if [ $commit_ec -ne 0 ]; then
                 echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
                 git merge --abort
-                exit $commit_ec
+                #exit $commit_ec
             fi
         else
 	    echo "Merge failed, manual merge"
