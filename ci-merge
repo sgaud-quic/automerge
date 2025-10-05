@@ -615,7 +615,6 @@ fi
 
 echo "Create a new integration branch based on $TAG"
 git checkout -b $INTEG_BRANCH $TAG
-
 echo "Merging topic branches..."
 mkdir qcom-next
 printf "%*s %*s\n" 10 "Name" 20 "SHA1" > qcom-next/topic_SHA1
@@ -648,6 +647,19 @@ while read LINE; do
     fi
 
     echo "------------------------------------------"
+    echo "**********Check if anything updated on the branch*************"
+    current_date=$(date +"%Y-%m-%d")
+    echo $current_date
+    week_ago_date=$(date -d "7 days ago" +"%Y-%m-%d")
+    echo $week_ago_date
+    if git log --since=$week_ago_date --until=$current_date --oneline  $MERGER | grep .; then
+        echo "yes"
+        printf "$REMOTE_BRANCH\n" >> branch_updated.txt
+    else
+        echo "no"
+    fi
+    echo "------------------------------------------"
+
     echo " ** Merging topic branch: $MERGER"
     branch_tip=$(git rev-parse $MERGER)
     MERGE_OUTPUT=$(git merge --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER 2>&1)
