@@ -371,6 +371,37 @@ topic_sha_lookup() {
 
 ######################################################################
 #
+# Ensure a pinned commit is available locally. Topic remotes can be added
+# with a narrow branch refspec, so fetch the exact pinned SHA before failing.
+#
+topic_sha_fetch() {
+
+    REMOTE=$1
+    SHA=$2
+
+    if git rev-parse --quiet --verify "$SHA^{commit}" > /dev/null; then
+	return 0
+    fi
+
+    echo "$REMOTE pinned commit $SHA is not available locally. Fetching advertised refs."
+    git fetch --no-tags $REMOTE \
+	"+refs/heads/*:refs/remotes/$REMOTE/*" \
+	"+refs/tags/*:refs/tags/*" > /dev/null 2>&1
+    if git rev-parse --quiet --verify "$SHA^{commit}" > /dev/null; then
+	return 0
+    fi
+
+    echo "$REMOTE pinned commit $SHA is still unavailable. Fetching it directly."
+    git fetch --no-tags $REMOTE $SHA > /dev/null 2>&1
+    if git rev-parse --quiet --verify "$SHA^{commit}" > /dev/null; then
+	return 0
+    fi
+
+    return 1
+}
+
+######################################################################
+#
 # Setup path after options and config is done
 #
 path_setup() {
@@ -606,7 +637,7 @@ do_update_remote() {
 	RES=$(git remote update $REMOTE_NAME 2>&1 | wc -l)
 	PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
 	if [ -n "$PINNED_SHA" ]; then
-	    if ! git rev-parse --quiet --verify "$PINNED_SHA^{commit}" > /dev/null; then
+	    if ! topic_sha_fetch $REMOTE_NAME $PINNED_SHA; then
 		echo "ERROR: Pinned SHA $PINNED_SHA for $REMOTE_NAME is not available after fetch"
 		exit 1
 	    fi
@@ -695,7 +726,7 @@ while read LINE; do
     fi
 
     if [ -n "$PINNED_SHA" ]; then
-	if ! git rev-parse --quiet --verify "$PINNED_SHA^{commit}" > /dev/null; then
+	if ! topic_sha_fetch $REMOTE_NAME $PINNED_SHA; then
 	    echo "ERROR: Pinned SHA $PINNED_SHA for $REMOTE_NAME is not available"
 	    exit 1
 	fi
