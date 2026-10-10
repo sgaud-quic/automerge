@@ -45,8 +45,8 @@ separate SHA config with `--sha-config`/`-s`:
 ```
 
 The topic remote name must match the first column in the main branch config.
-Only topics listed in the SHA config are pinned; all other topics continue to
-merge the configured branch tip.
+When a SHA config is supplied, only the baseline and topics listed in the SHA
+config are processed; topics omitted from the SHA config are skipped.
 
 ## Conflict Resolution and sharing a rerere cache within a team
 

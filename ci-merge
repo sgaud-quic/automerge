@@ -145,7 +145,7 @@ Help() {
     echo "	 -t|--track tag|head	: Changes on the latest tag or HEAD on branch [$TRACK]"
     echo "	 -c|--cache <name>	: URL to rerere cache repository [$RERERE_CACHE]"
     echo "	 -f|--config <name>	: Config file listing branches to be merged [$CONFIG]"
-    echo "	 -s|--sha-config <name>	: Optional config file pinning topic remotes to commit IDs [$SHA_CONFIG]"
+    echo "	 -s|--sha-config <name>	: Optional config file pinning and filtering topic remotes to commit IDs [$SHA_CONFIG]"
     echo "	 -n|--interactive	: Whether to run the tool interactively [$INTERACTIVE]"
     echo "	 -y|--force		: Whether to force merging the branches [$FORCE]"
     echo "	 -p|--pass		: Whether to bypass conflicting branch [$BYPASS]"
@@ -371,6 +371,27 @@ topic_sha_lookup() {
 
 ######################################################################
 #
+# Check whether a remote should be processed. When SHA_CONFIG is supplied,
+# only the baseline and topic remotes listed in SHA_CONFIG are processed.
+#
+topic_enabled() {
+
+    REMOTE=$1
+
+    if [ "$REMOTE" = "$BASELINE" ]; then
+	return 0
+    fi
+
+    if [ -z "$SHA_CONFIG" ]; then
+	return 0
+    fi
+
+    topic_sha_lookup $REMOTE > /dev/null
+    return $?
+}
+
+######################################################################
+#
 # Ensure a pinned commit is available locally. Topic remotes can be added
 # with a narrow branch refspec, so fetch the exact pinned SHA before failing.
 #
@@ -534,7 +555,9 @@ do_remove_old() {
 
 	    echo $LINE | grep "^$REMOTE_NAME\b" | grep -q $REMOTE_URL
 	    if [ $? -eq 0 ]; then
-		FOUND=1
+		if topic_enabled $REMOTE_NAME; then
+		    FOUND=1
+		fi
 	    fi
 	done < $CONFIG
 
@@ -578,6 +601,10 @@ do_add_new() {
 	REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
 	REMOTE_URL=$(echo $LINE | awk '{print $2}')
 	REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+
+	if ! topic_enabled $REMOTE_NAME; then
+	    continue
+	fi
 
 	git remote | grep -q "^$REMOTE_NAME$"
 	if [ $? -ne 0 ]; then
@@ -632,10 +659,14 @@ do_update_remote() {
 		continue
 	fi
 
+	PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
+	if [ -n "$SHA_CONFIG" -a -z "$PINNED_SHA" ]; then
+		continue
+	fi
+
 	echo "Updating $REMOTE_NAME"
 
 	RES=$(git remote update $REMOTE_NAME 2>&1 | wc -l)
-	PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
 	if [ -n "$PINNED_SHA" ]; then
 	    if ! topic_sha_fetch $REMOTE_NAME $PINNED_SHA; then
 		echo "ERROR: Pinned SHA $PINNED_SHA for $REMOTE_NAME is not available after fetch"
@@ -722,6 +753,10 @@ while read LINE; do
     PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
 
     if [ "$REMOTE_NAME" = "$BASELINE" ]; then
+	continue
+    fi
+
+    if [ -n "$SHA_CONFIG" -a -z "$PINNED_SHA" ]; then
 	continue
     fi
 
