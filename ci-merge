@@ -734,7 +734,7 @@ while read LINE; do
 	    echo "WARNING: Pinned SHA $PINNED_SHA is not reachable from $REMOTE_NAME/$REMOTE_BRANCH"
 	fi
         MERGER="$PINNED_SHA"
-        MERGE_MSG="Merge pinned commit $PINNED_SHA from $REMOTE_NAME into $INTEG_BRANCH"
+        MERGE_MSG="Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH"
     else
         MERGER="$REMOTE_NAME/$REMOTE_BRANCH"
         MERGE_MSG="Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH"
