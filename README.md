@@ -31,6 +31,23 @@ $ export RR_CACHE=ssh://git@git.linaro.org/landing-teams/working/qualcomm/autome
 (Interactive run)
 $ ci-merge -l $LOCAL_LINUX_REPO -c $RR_CACHE -f ~/.automerge/automerge-ci.conf -n
 
+(Interactive run with topic SHAs pinned from a separate config)
+$ ci-merge -l $LOCAL_LINUX_REPO -c $RR_CACHE -f ~/.automerge/automerge-ci.conf -s ~/.automerge/automerge-ci.sha.conf -n
+
+## Topic SHA pinning
+
+By default, ci-merge fetches and merges the current tip of each topic branch
+listed in the main config file. To make an integration reproducible, provide a
+separate SHA config with `--sha-config`/`-s`:
+
+```
+<topic remote name> <commit sha>
+```
+
+The topic remote name must match the first column in the main branch config.
+Only topics listed in the SHA config are pinned; all other topics continue to
+merge the configured branch tip.
+
 ## Conflict Resolution and sharing a rerere cache within a team
 
 The following example is used by the Qualcomm Landing Team to update their

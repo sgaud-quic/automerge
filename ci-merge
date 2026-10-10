@@ -111,6 +111,9 @@ RERERE_CACHE=""
 
 RERERE_CACHE_DIR=""
 
+# Optional config file pinning topic remotes to specific commit IDs
+SHA_CONFIG=""
+
 BYPASS=0
 
 # Global variable to test if a change occured during the last merge
@@ -142,6 +145,7 @@ Help() {
     echo "	 -t|--track tag|head	: Changes on the latest tag or HEAD on branch [$TRACK]"
     echo "	 -c|--cache <name>	: URL to rerere cache repository [$RERERE_CACHE]"
     echo "	 -f|--config <name>	: Config file listing branches to be merged [$CONFIG]"
+    echo "	 -s|--sha-config <name>	: Optional config file pinning topic remotes to commit IDs [$SHA_CONFIG]"
     echo "	 -n|--interactive	: Whether to run the tool interactively [$INTERACTIVE]"
     echo "	 -y|--force		: Whether to force merging the branches [$FORCE]"
     echo "	 -p|--pass		: Whether to bypass conflicting branch [$BYPASS]"
@@ -155,8 +159,8 @@ Help() {
 #
 options_setup() {
 
-    SHORTOPT="hnl:r:b:i:t:c:f:y:p"
-    LONGOPT="help,interactive,local:,remote:,baseline:,integ:,track:,cache:,config:,force:,pass"
+    SHORTOPT="hnl:r:b:i:t:c:f:s:y:p"
+    LONGOPT="help,interactive,local:,remote:,baseline:,integ:,track:,cache:,config:,sha-config:,force:,pass"
 
     OPTS=$(getopt -o $SHORTOPT -l $LONGOPT -- "$@")
 
@@ -220,6 +224,10 @@ options_setup() {
 
 	    --config|-f)
 		CONFIG=$1
+		;;
+
+	    --sha-config|-s)
+		SHA_CONFIG=$1
 		;;
 
         --pass|-p)
@@ -323,6 +331,42 @@ config_setup() {
 	echo "No configuration file found, aborting."
 	exit 1
     fi
+
+    if [ -n "$SHA_CONFIG" -a ! -f "$SHA_CONFIG" ]; then
+	echo "SHA configuration file '$SHA_CONFIG' not found, aborting."
+	exit 1
+    fi
+}
+
+######################################################################
+#
+# Look up an optional pinned commit ID for a topic remote. The SHA config
+# format is: <remote-name> <commit-sha>
+#
+topic_sha_lookup() {
+
+    REMOTE=$1
+
+    if [ -z "$SHA_CONFIG" ]; then
+	return 1
+    fi
+
+    while read LINE; do
+
+	# Ignore commented line
+	echo $LINE | egrep -q '(^#|^\s*$|^\s*\t*#)' && continue
+
+	SHA_REMOTE=$(echo $LINE | awk '{ print $1 }')
+	SHA_VALUE=$(echo $LINE | awk '{ print $2 }')
+
+	if [ "$SHA_REMOTE" = "$REMOTE" -a -n "$SHA_VALUE" ]; then
+	    echo $SHA_VALUE
+	    return 0
+	fi
+
+    done < $SHA_CONFIG
+
+    return 1
 }
 
 ######################################################################
@@ -560,7 +604,14 @@ do_update_remote() {
 	echo "Updating $REMOTE_NAME"
 
 	RES=$(git remote update $REMOTE_NAME 2>&1 | wc -l)
-	if [ $RES -gt 1 ]; then
+	PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
+	if [ -n "$PINNED_SHA" ]; then
+	    if ! git rev-parse --quiet --verify "$PINNED_SHA^{commit}" > /dev/null; then
+		echo "ERROR: Pinned SHA $PINNED_SHA for $REMOTE_NAME is not available after fetch"
+		exit 1
+	    fi
+	    echo "$REMOTE_NAME pinned to $PINNED_SHA. Ignoring branch tip changes."
+	elif [ $RES -gt 1 ]; then
 	    echo "$REMOTE_NAME has changed."
 	    UPDATED=$((UPDATED + 1))
 	fi
@@ -637,22 +688,31 @@ while read LINE; do
     REMOTE_NAME=$(echo $LINE | awk '{ print $1 }')
     REMOTE_URL=$(echo $LINE | awk '{print $2}')
     REMOTE_BRANCH=$(echo $LINE | awk '{print $3}')
+    PINNED_SHA=$(topic_sha_lookup $REMOTE_NAME)
 
     if [ "$REMOTE_NAME" = "$BASELINE" ]; then
 	continue
     fi
 
-    git rev-parse --quiet --verify "override/$REMOTE_NAME"
-    if [ $? -eq 0 ]; then
-        MERGER="override/$REMOTE_NAME"
+    if [ -n "$PINNED_SHA" ]; then
+	if ! git rev-parse --quiet --verify "$PINNED_SHA^{commit}" > /dev/null; then
+	    echo "ERROR: Pinned SHA $PINNED_SHA for $REMOTE_NAME is not available"
+	    exit 1
+	fi
+	if ! git merge-base --is-ancestor "$PINNED_SHA" "$REMOTE_NAME/$REMOTE_BRANCH" 2> /dev/null; then
+	    echo "WARNING: Pinned SHA $PINNED_SHA is not reachable from $REMOTE_NAME/$REMOTE_BRANCH"
+	fi
+        MERGER="$PINNED_SHA"
+        MERGE_MSG="Merge pinned commit $PINNED_SHA from $REMOTE_NAME into $INTEG_BRANCH"
     else
         MERGER="$REMOTE_NAME/$REMOTE_BRANCH"
+        MERGE_MSG="Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH"
     fi
 
     echo "------------------------------------------"
     echo " ** Merging topic branch: $MERGER"
     branch_tip=$(git rev-parse $MERGER)
-    MERGE_OUTPUT=$(git merge --no-ff --no-edit -m "Merge remote-tracking branch $REMOTE_NAME into $INTEG_BRANCH" $MERGER)
+    MERGE_OUTPUT=$(git merge --no-ff --no-edit -m "$MERGE_MSG" $MERGER)
     if [ $? -ne 0 ]; then
 	if [ $INTERACTIVE -eq 0 ]; then
             # try to commit, may be resolved by rerere

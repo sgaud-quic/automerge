@@ -1,0 +1,14 @@
+#
+# Optional topic SHA pinning config.
+#
+# Use this with ci-merge --sha-config/-s when a topic should be merged at a
+# fixed commit instead of the current tip of the branch listed in ci.conf.
+#
+# Format:
+# <topic remote name> <commit sha>
+#
+# The topic remote name must match the first column in the main ci.conf file.
+# Topics not listed here continue to merge the configured branch tip.
+#
+# Example:
+#john.doe 0123456789abcdef0123456789abcdef01234567
