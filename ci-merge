@@ -660,6 +660,14 @@ while read LINE; do
             commit_ec=$?
             if [ $commit_ec -ne 0 ]; then
                 echo "Merge failed, $REMOTE_NAME $REMOTE_URL $REMOTE_BRANCH"
+                # Surface git's own merge output. It names the conflicting
+                # paths, and without this it is captured into MERGE_OUTPUT and
+                # discarded, leaving the log with no indication of what
+                # actually conflicted.
+                echo "$MERGE_OUTPUT"
+                git diff --name-only --diff-filter=U | while read -r conflicted_path; do
+                    echo "CONFLICT (unmerged): Merge conflict in $conflicted_path"
+                done
                 git merge --abort
                 if [ $BYPASS -eq 1 ]; then
                     is_conflict=1
